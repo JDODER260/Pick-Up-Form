@@ -10,6 +10,13 @@ consider** `becoming a financial member of BeeWare`_.
 .. _`The BeeWare Project`: https://beeware.org/
 .. _`becoming a financial member of BeeWare`: https://beeware.org/contributing/membership
 
+
+
+
+How to download
+===============
+Navigate to releases, click on tags and select PO_App. Scroll to the bottom and there is the source code, and the .aab, .apks, and .apk file which you can install directly onto your android device.
+
 Pick Up & Delivery App
 ======================
 
