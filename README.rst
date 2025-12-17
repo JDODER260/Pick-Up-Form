@@ -10,6 +10,13 @@ consider** `becoming a financial member of BeeWare`_.
 .. _`The BeeWare Project`: https://beeware.org/
 .. _`becoming a financial member of BeeWare`: https://beeware.org/contributing/membership
 
+
+
+
+How to download
+===============
+Navigate to releases, scroll to the bottom of the newest release and view the assets. You can either download the source code and compile it yourself or use the provided .apk file and install it on your android device. Note: I will always include the .aab file which is not signed, and the .apks file which is a type of file compression. 
+
 Pick Up & Delivery App
 ======================
 
