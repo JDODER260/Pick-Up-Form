@@ -50,7 +50,7 @@ class POApp(toga.App):
         self.delivery_url = "https://doublersharpening.com/api/delivery_pos/"
         self.pdf_base_dir = "/storage/emulated/0/download/PickUpForms"
 
-        self.current_version = "2.2.0"  # Updated version for new features
+        self.current_version = "2.2.1"  # Updated version for new features
 
         # Data storage
         self.data_dir = None
@@ -361,6 +361,13 @@ class POApp(toga.App):
         self.save_settings()
         self.main_window.content = self.pickup_home_screen
         self.load_pos()
+
+        # Update the company display immediately
+        if hasattr(self, 'selection_label'):
+            selection_text = f"{self.selected_route}"
+            if self.selected_company:
+                selection_text += f" | {self.selected_company}"
+            self.selection_label.text = selection_text
 
     def download_delivery_route(self, widget):
         """Download delivery route data for selected route"""
@@ -1058,6 +1065,13 @@ class POApp(toga.App):
         else:
             self.main_window.content = self.pickup_home_screen
             self.load_pos()
+
+            # ADD THIS - Update the company display
+            if hasattr(self, 'selection_label'):
+                selection_text = f"{self.selected_route}"
+                if self.selected_company:
+                    selection_text += f" | {self.selected_company}"
+                self.selection_label.text = selection_text
 
     def load_settings(self):
         """Load app settings"""

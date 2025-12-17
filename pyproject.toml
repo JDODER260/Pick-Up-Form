@@ -2,7 +2,7 @@
 [tool.briefcase]
 project_name = "Pick Up Form"
 bundle = "com.doublersharpening"
-version = "2.2.0"
+version = "2.2.1"
 url = "https://doublersharpening.com"
 license.file = "LICENSE"
 author = "Judah Yoder"
@@ -22,7 +22,7 @@ test_sources = [
 
 # Platform-agnostic dependencies only
 requires = [
-    "toga-core~=0.5.2",  
+    "toga-core~=0.5.2",
     "requests>=2.28.0",
     "packaging>=21.3",
     "urllib3>=1.26.0",
