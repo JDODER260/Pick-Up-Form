@@ -9,70 +9,70 @@
 9        android:targetSdkVersion="34" />
 10
 11    <uses-permission android:name="android.permission.INTERNET" />
-11-->C:\Users\jdode\Documents\double r\Pick-Up-Form\mypoapp\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:3:5-67
-11-->C:\Users\jdode\Documents\double r\Pick-Up-Form\mypoapp\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:3:22-64
+11-->C:\Users\jdode\Documents\double r\Pick-Up-Form\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:3:5-67
+11-->C:\Users\jdode\Documents\double r\Pick-Up-Form\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:3:22-64
 12    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-12-->C:\Users\jdode\Documents\double r\Pick-Up-Form\mypoapp\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:4:5-79
-12-->C:\Users\jdode\Documents\double r\Pick-Up-Form\mypoapp\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:4:22-76
+12-->C:\Users\jdode\Documents\double r\Pick-Up-Form\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:4:5-79
+12-->C:\Users\jdode\Documents\double r\Pick-Up-Form\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:4:22-76
 13
 14    <application
-14-->C:\Users\jdode\Documents\double r\Pick-Up-Form\mypoapp\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:5:5-35:19
+14-->C:\Users\jdode\Documents\double r\Pick-Up-Form\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:5:5-35:19
 15        android:allowBackup="true"
-15-->C:\Users\jdode\Documents\double r\Pick-Up-Form\mypoapp\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:6:9-35
+15-->C:\Users\jdode\Documents\double r\Pick-Up-Form\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:6:9-35
 16        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
 16-->[androidx.core:core:1.8.0] C:\Users\jdode\.gradle\caches\transforms-3\51ced42a043282b4bcc1ea017cd9cdbe\transformed\core-1.8.0\AndroidManifest.xml:24:18-86
 17        android:debuggable="true"
 18        android:extractNativeLibs="false"
 19        android:icon="@mipmap/ic_launcher"
-19-->C:\Users\jdode\Documents\double r\Pick-Up-Form\mypoapp\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:7:9-43
+19-->C:\Users\jdode\Documents\double r\Pick-Up-Form\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:7:9-43
 20        android:label="@string/formal_name"
-20-->C:\Users\jdode\Documents\double r\Pick-Up-Form\mypoapp\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:8:9-44
+20-->C:\Users\jdode\Documents\double r\Pick-Up-Form\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:8:9-44
 21        android:networkSecurityConfig="@xml/network_security_config"
-21-->C:\Users\jdode\Documents\double r\Pick-Up-Form\mypoapp\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:9:9-69
+21-->C:\Users\jdode\Documents\double r\Pick-Up-Form\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:9:9-69
 22        android:roundIcon="@mipmap/ic_launcher_round"
-22-->C:\Users\jdode\Documents\double r\Pick-Up-Form\mypoapp\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:10:9-54
+22-->C:\Users\jdode\Documents\double r\Pick-Up-Form\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:10:9-54
 23        android:supportsRtl="true"
-23-->C:\Users\jdode\Documents\double r\Pick-Up-Form\mypoapp\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:11:9-35
+23-->C:\Users\jdode\Documents\double r\Pick-Up-Form\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:11:9-35
 24        android:theme="@style/AppTheme.Launcher" >
-24-->C:\Users\jdode\Documents\double r\Pick-Up-Form\mypoapp\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:12:9-49
+24-->C:\Users\jdode\Documents\double r\Pick-Up-Form\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:12:9-49
 25
 26        <!-- https://developer.android.com/guide/topics/resources/runtime-changes#HandlingTheChange -->
 27        <activity
-27-->C:\Users\jdode\Documents\double r\Pick-Up-Form\mypoapp\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:14:9-23:20
+27-->C:\Users\jdode\Documents\double r\Pick-Up-Form\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:14:9-23:20
 28            android:name="org.beeware.android.MainActivity"
-28-->C:\Users\jdode\Documents\double r\Pick-Up-Form\mypoapp\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:16:13-60
+28-->C:\Users\jdode\Documents\double r\Pick-Up-Form\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:16:13-60
 29            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
-29-->C:\Users\jdode\Documents\double r\Pick-Up-Form\mypoapp\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:15:13-87
+29-->C:\Users\jdode\Documents\double r\Pick-Up-Form\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:15:13-87
 30            android:exported="true" >
-30-->C:\Users\jdode\Documents\double r\Pick-Up-Form\mypoapp\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:17:13-36
+30-->C:\Users\jdode\Documents\double r\Pick-Up-Form\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:17:13-36
 31            <intent-filter>
-31-->C:\Users\jdode\Documents\double r\Pick-Up-Form\mypoapp\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:18:13-21:29
+31-->C:\Users\jdode\Documents\double r\Pick-Up-Form\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:18:13-21:29
 32                <action android:name="android.intent.action.MAIN" />
-32-->C:\Users\jdode\Documents\double r\Pick-Up-Form\mypoapp\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:19:17-69
-32-->C:\Users\jdode\Documents\double r\Pick-Up-Form\mypoapp\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:19:25-66
+32-->C:\Users\jdode\Documents\double r\Pick-Up-Form\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:19:17-69
+32-->C:\Users\jdode\Documents\double r\Pick-Up-Form\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:19:25-66
 33
 34                <category android:name="android.intent.category.LAUNCHER" />
-34-->C:\Users\jdode\Documents\double r\Pick-Up-Form\mypoapp\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:20:17-77
-34-->C:\Users\jdode\Documents\double r\Pick-Up-Form\mypoapp\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:20:27-74
+34-->C:\Users\jdode\Documents\double r\Pick-Up-Form\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:20:17-77
+34-->C:\Users\jdode\Documents\double r\Pick-Up-Form\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:20:27-74
 35            </intent-filter>
 36        </activity>
 37
 38        <provider
-38-->C:\Users\jdode\Documents\double r\Pick-Up-Form\mypoapp\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:24:9-33:20
+38-->C:\Users\jdode\Documents\double r\Pick-Up-Form\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:24:9-33:20
 39            android:name="androidx.core.content.FileProvider"
-39-->C:\Users\jdode\Documents\double r\Pick-Up-Form\mypoapp\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:25:13-62
+39-->C:\Users\jdode\Documents\double r\Pick-Up-Form\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:25:13-62
 40            android:authorities="com.doublersharpening.mypoapp.fileprovider"
-40-->C:\Users\jdode\Documents\double r\Pick-Up-Form\mypoapp\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:26:13-77
+40-->C:\Users\jdode\Documents\double r\Pick-Up-Form\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:26:13-77
 41            android:exported="false"
-41-->C:\Users\jdode\Documents\double r\Pick-Up-Form\mypoapp\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:27:13-37
+41-->C:\Users\jdode\Documents\double r\Pick-Up-Form\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:27:13-37
 42            android:grantUriPermissions="true" >
-42-->C:\Users\jdode\Documents\double r\Pick-Up-Form\mypoapp\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:28:13-47
+42-->C:\Users\jdode\Documents\double r\Pick-Up-Form\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:28:13-47
 43            <meta-data
-43-->C:\Users\jdode\Documents\double r\Pick-Up-Form\mypoapp\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:29:13-32:25
+43-->C:\Users\jdode\Documents\double r\Pick-Up-Form\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:29:13-32:25
 44                android:name="android.support.FILE_PROVIDER_PATHS"
-44-->C:\Users\jdode\Documents\double r\Pick-Up-Form\mypoapp\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:30:17-67
+44-->C:\Users\jdode\Documents\double r\Pick-Up-Form\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:30:17-67
 45                android:resource="@xml/file_paths" >
-45-->C:\Users\jdode\Documents\double r\Pick-Up-Form\mypoapp\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:31:17-51
+45-->C:\Users\jdode\Documents\double r\Pick-Up-Form\build\mypoapp\android\gradle\app\src\main\AndroidManifest.xml:31:17-51
 46            </meta-data>
 47        </provider>
 48        <provider

@@ -5,7 +5,7 @@ bundle = "com.doublersharpening"
 version = "2.2.0"
 url = "https://doublersharpening.com"
 license.file = "LICENSE"
-author = "JDODER"
+author = "Judah Yoder"
 author_email = "jdoder@outlook.com"
 
 [tool.briefcase.app.mypoapp]

@@ -7,7 +7,7 @@
         "bootstrap-native/arm64-v8a/_random.cpython-313-aarch64-linux-android.so": "fa4dc628eb47e40137c9d024a6de40ad00177af5",
         "bootstrap-native/arm64-v8a/_lzma.cpython-313-aarch64-linux-android.so": "62e12c05943954207b7bb8c63af593d893c6638a",
         "requirements-x86_64.imy": "4014d3a49adf120a879bd0165b436c6df22a8efc",
-        "app.imy": "0e87748306375c6c2009a3822c1aa2bb932b44c6",
+        "app.imy": "e7f8647928c3769ff182ab03fb7ed69896c3bde9",
         "stdlib-common.imy": "093211b5baf4bdcbe2532ff069bb8a8b2004bc4f",
         "stdlib-arm64-v8a.imy": "30744475cc44934f6faa45e04199f67966c71ce9",
         "bootstrap-native/x86_64/_datetime.cpython-313-x86_64-linux-android.so": "5ae2a8073a1b06902021c874d7d41b8f9798ade5",
@@ -31,7 +31,7 @@
         "bootstrap-native/arm64-v8a/_ctypes.cpython-313-aarch64-linux-android.so": "8cbdfe68e4653b28c4234d19f78224de4e5dfbab",
         "bootstrap-native/x86_64/math.cpython-313-x86_64-linux-android.so": "f92f5a5f7a785dd4a699e7a07933ed25d7438802",
         "bootstrap-native/x86_64/_random.cpython-313-x86_64-linux-android.so": "49634dcf7138b22f1c4daaa585e19da3b6348692",
-        "requirements-common.imy": "f3a8ba97cc713d341d7aca0fe24e900f8848e3bd",
+        "requirements-common.imy": "74984bf551f0c18820cff6bfd96fc5bb769557fd",
         "bootstrap-native/x86_64/_opcode.cpython-313-x86_64-linux-android.so": "8848e96d5d3fdea580d947683e0b118ff4c59bdb"
     },
     "extract_packages": ["tests"],
