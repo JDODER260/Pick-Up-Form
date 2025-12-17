@@ -1,0 +1,89 @@
+# This project was generated with 0.3.24 using template: https://github.com/beeware/briefcase-template @ v0.3.24
+[tool.briefcase]
+project_name = "Pick Up Form"
+bundle = "com.doublersharpening"
+version = "2.2.0"
+url = "https://doublersharpening.com"
+license.file = "LICENSE"
+author = "JDODER"
+author_email = "jdoder@outlook.com"
+
+[tool.briefcase.app.mypoapp]
+formal_name = "Pick Up Form"
+description = "Pick Up Management System"
+long_description = """App for managing and uploading Pick Up Forms"""
+icon = "src/mypoapp/resources/ic_launcher-web.png"
+sources = [
+    "src/mypoapp",
+]
+test_sources = [
+    "tests",
+]
+
+# Platform-agnostic dependencies only
+requires = [
+    "toga-core~=0.5.2",  
+    "requests>=2.28.0",
+    "packaging>=21.3",
+    "urllib3>=1.26.0",
+    "reportlab>=4.0.4",
+]
+
+test_requires = [
+    "pytest",
+]
+
+# Android-specific
+[tool.briefcase.app.mypoapp.android]
+requires = [
+    "toga-android~=0.5.2",
+]
+
+
+
+permissions = [
+    "INTERNET",
+    "REQUEST_INSTALL_PACKAGES",
+    "ACCESS_NETWORK_STATE",
+    "WAKE_LOCK",
+    "POST_NOTIFICATIONS",
+    "READ_MEDIA_IMAGES",
+    "READ_MEDIA_VIDEO",
+    "READ_MEDIA_AUDIO"
+]
+orientation = "portrait"
+api = 35
+min_api = 21  # Android 4.1 Jelly Bean
+base_theme = "Theme.MaterialComponents.Light.DarkActionBar"
+build_gradle_dependencies = [
+    "com.google.android.material:material:1.6.1",  # For API 16 compatibility
+    "androidx.core:core-ktx:1.8.0",  # For API 16 compatibility
+    "androidx.appcompat:appcompat:1.4.2",  # For API 16 compatibility
+]
+version_code = 2
+
+# REMOVE other platform configurations since you said "android only"
+# Comment out or delete these sections:
+# [tool.briefcase.app.mypoapp.windows]
+# requires = [
+#     "toga-winforms~=0.5.2",
+# ]
+
+# [tool.briefcase.app.mypoapp.macOS]
+# universal_build = true
+# requires = [
+#     "toga-cocoa~=0.5.2",
+#     "std-nslog~=1.0.3",
+# ]
+
+# [tool.briefcase.app.mypoapp.linux]
+# requires = [
+#     "toga-gtk~=0.5.2",
+# ]
+
+[tool.briefcase.android]
+additional_resources = [
+    "src/mypoapp/resources/xml/file_paths.xml",
+    "AndroidManifest.custom.xml"
+]
+
