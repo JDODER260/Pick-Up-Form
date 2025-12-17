@@ -10,8 +10,8 @@ The following versions of **Pick Up & Delivery** are currently supported with se
 | 2.1.x   | ⚠️ Limited         | 2025-12-11       | Critical fixes only             |
 | 1.3.0   | ⚠️ Limited         | 2025-12-10       | Critical fixes only             |
 | 1.2.x   | ⚠️ Limited         | 2025-12-09       | Critical fixes only             |
-| 1.1.x   | ⚠️ Limited         | 2025-12-04       | Critical fixes only             |
-| < 2.0   | ❌ No              | 2025-01-01       | Not supported                   |
+| 1.1.x   | ❌ No              | 2025-12-04       | Not supported                   |
+| < 1.1.6 | ❌ No              | 2025-05-24       | Not supported                   |
 
 **Note:** Only the latest major version receives full security support. Users are strongly encouraged to update to the latest version.
 
