@@ -15,7 +15,7 @@ consider** `becoming a financial member of BeeWare`_.
 
 How to download
 ===============
-Navigate to releases, click on tags and select PO_App. Scroll to the bottom and there is the source code, and the .aab, .apks, and .apk file which you can install directly onto your android device.
+Navigate to releases, scroll to the bottom of the newest release and view the assets. You can either download the source code and compile it yourself or use the provided .apk file and install it on your android device. Note: I will always include the .aab file which is not signed, and the .apks file which is a type of file compression. 
 
 Pick Up & Delivery App
 ======================
