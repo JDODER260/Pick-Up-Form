@@ -1,0 +1,9 @@
+cat > .android-signing << 'EOF'
+ANDROID_KEYSTORE_PATH=android-release-key.keystore
+ANDROID_KEYSTORE_PASSWORD=%*@^Q%Ha%L*r8s#j
+ANDROID_KEYALIAS=android-key
+ANDROID_KEYALIAS_PASSWORD=%*@^Q%Ha%L*r8s#j
+EOF
+
+# Important: Don't commit this file to git!
+echo ".android-signing" >> .gitignore
