@@ -93,19 +93,6 @@ Security updates are announced through:
 2. **App update mechanism** (when distributed via stores)
 3. **Email alerts** for registered enterprise users
 
-## For Enterprise Users
-
-### 🏢 Enterprise Security
-- **Custom deployments**: Available with additional security controls
-- **MDM integration**: Supports mobile device management systems
-- **Audit logging**: Enhanced logging for compliance
-- **Custom CA**: Support for enterprise certificate authorities
-
-### 📞 Enterprise Support
-Enterprise customers with specific security requirements can contact:
-**Email:** enterprise-security@doublersharpening.com  
-**Response Time:** 24 business hours for critical issues
-
 ## Vulnerability Types of Interest
 
 We are particularly interested in reports of:
