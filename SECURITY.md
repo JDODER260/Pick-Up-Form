@@ -93,19 +93,6 @@ Security updates are announced through:
 2. **App update mechanism** (when distributed via stores)
 3. **Email alerts** for registered enterprise users
 
-## For Enterprise Users
-
-### 🏢 Enterprise Security
-- **Custom deployments**: Available with additional security controls
-- **MDM integration**: Supports mobile device management systems
-- **Audit logging**: Enhanced logging for compliance
-- **Custom CA**: Support for enterprise certificate authorities
-
-### 📞 Enterprise Support
-Enterprise customers with specific security requirements can contact:
-**Email:** enterprise-security@doublersharpening.com  
-**Response Time:** 24 business hours for critical issues
-
 ## Vulnerability Types of Interest
 
 We are particularly interested in reports of:
@@ -154,19 +141,16 @@ This application complies with:
 
 ### 🎯 Primary Security Contact
 **Judah Yoder**  
-Security Lead, Double R Sharpening  
+Tech Guy, Double R Sharpening  
 Email: Judah@doublersharpening.com  
 
-### 📞 Emergency Contact
-For urgent security matters outside business hours:  
-**Phone:** +1 (814) 333-1181 (Office - business hours only)  
+
 
 ### 🌐 Additional Resources
 - [GitHub Security Advisories](https://github.com/JDODER260/Pick-Up-Form/security/advisories)
 - [Release Notes](https://github.com/JDODER260/Pick-Up-Form/releases)
-- [Privacy Policy](https://doublersharpening.com/privacy) (if applicable)
 
 ---
 
-*Last Updated: 2025-01-18*  
-*Policy Version: 1.0*
+*Last Updated: 2025-12-18*  
+*Policy Version: 1.3*
