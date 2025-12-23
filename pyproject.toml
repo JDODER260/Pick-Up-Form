@@ -2,7 +2,7 @@
 [tool.briefcase]
 project_name = "Pick Up Form"
 bundle = "com.doublersharpening"
-version = "2.2.1"
+version = "2.2.3"
 url = "https://doublersharpening.com"
 license.file = "LICENSE"
 author = "Judah Yoder"
@@ -49,7 +49,10 @@ permissions = [
     "POST_NOTIFICATIONS",
     "READ_MEDIA_IMAGES",
     "READ_MEDIA_VIDEO",
-    "READ_MEDIA_AUDIO"
+    "READ_MEDIA_AUDIO",
+    "READ_EXTERNAL_STORAGE",
+    "WRITE_EXTERNAL_STORAGE",
+    "MANAGE_EXTERNAL_STORAGE",
 ]
 orientation = "portrait"
 api = 35

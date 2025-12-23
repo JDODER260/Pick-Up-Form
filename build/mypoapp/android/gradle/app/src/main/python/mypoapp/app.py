@@ -2,7 +2,7 @@ import toga
 from toga.style import Pack
 from toga.style.pack import COLUMN, ROW, CENTER
 import json
-import os
+import os, sys
 from datetime import datetime
 import requests
 import uuid
@@ -22,18 +22,52 @@ from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from io import BytesIO
+from .android_utils import AndroidAPKInstaller, DownloadManager, ANDROID
 
-# Add these imports at the top
-try:
-    from android import mActivity
-    from android.content import Intent
-    from android.net import Uri
-    from java.io import File
 
-    ANDROID_AVAILABLE = True
-except ImportError:
-    ANDROID_AVAILABLE = False
+def is_android():
+    """Detect if running on Android in Chaquopy/Toga 5.3"""
+    # Chaquopy sets specific environment variables
+    if 'CHAQUOPY' in os.environ:
+        return True
 
+    # Check for Chaquopy in Python path
+    for path in sys.path:
+        if 'chaquopy' in str(path).lower():
+            return True
+
+    # Check for Android app directory
+    if '/data/data/' in os.path.abspath('.'):
+        return True
+
+    return False
+
+
+ANDROID = is_android()
+print(f"Running on Android (Chaquopy): {ANDROID}")
+
+# Chaquopy-specific imports
+if ANDROID:
+    try:
+        # Chaquopy uses jnius for Android API access
+        from jnius import autoclass, cast
+
+        print("✓ Successfully imported jnius for Chaquopy")
+
+        # Get Android context
+        PythonActivity = autoclass('org.kivy.android.PythonActivity')
+        mActivity = PythonActivity.mActivity
+
+        # Import successful
+        ANDROID_IMPORTS_WORKING = True
+
+    except ImportError as e:
+        print(f"✗ Cannot import jnius: {e}")
+        ANDROID_IMPORTS_WORKING = False
+        mActivity = None
+else:
+    ANDROID_IMPORTS_WORKING = False
+    mActivity = None
 
 class POApp(toga.App):
     def __init__(self):
@@ -48,9 +82,13 @@ class POApp(toga.App):
 
         # New URL for delivery data
         self.delivery_url = "https://doublersharpening.com/api/delivery_pos/"
+        self.delivery_url = "https://doublersharpening.com/api/delivery_pos/"
+
+        # Use appropriate base directory for Android
+
         self.pdf_base_dir = "/storage/emulated/0/download/PickUpForms"
 
-        self.current_version = "2.2.0"  # Updated version for new features
+        self.current_version = "2.2.3"  # Updated version for new features
 
         # Data storage
         self.data_dir = None
@@ -96,13 +134,16 @@ class POApp(toga.App):
 
         os.makedirs(self.data_dir, exist_ok=True)
 
+        asyncio.create_task(self.request_android_permissions())
+
         # Load data
         self.load_settings()
         self.load_company_database()
         self.load_delivery_data()
 
-        print(f"Loaded {len(self.available_routes)} routes")
 
+        print(f"Loaded {len(self.available_routes)} routes")
+        print(f"Running on Android: {ANDROID}")
         # AUTO SYNC ON STARTUP
         self.sync_company_database_on_startup()
 
@@ -129,7 +170,23 @@ class POApp(toga.App):
             self.main_window.content = self.route_selection_screen
         else:
             self.main_window.content = self.delivery_home_screen if self.app_mode == "delivery" else self.pickup_home_screen
+        print(f"Platform: {sys.platform}")
+        print(f"Python version: {sys.version}")
+        print(f"Toga version: {toga.__version__}")
 
+        # Check all possible Android indicators
+        android_indicators = {
+            'sys.platform contains "linux"': 'linux' in sys.platform,
+            'ANDROID_ROOT in os.environ': 'ANDROID_ROOT' in os.environ,
+            'ANDROID_DATA in os.environ': 'ANDROID_DATA' in os.environ,
+            'PYTHONHOME contains "android"': 'android' in os.environ.get('PYTHONHOME', ''),
+        }
+
+        print("Android detection indicators:")
+        for key, value in android_indicators.items():
+            print(f"  {key}: {value}")
+
+        print(f"Final ANDROID flag: {ANDROID}")
         self.main_window.show()
 
     @property
@@ -189,8 +246,8 @@ class POApp(toga.App):
         )
 
         select_company_btn = toga.Button(
-            "Select Company",
-            on_press=self.show_company_selection,
+            "Select Route",
+            on_press=self.show_route_selection,
             style=Pack(flex=1, padding=5, background_color="#2196F3")
         )
 
@@ -361,6 +418,13 @@ class POApp(toga.App):
         self.save_settings()
         self.main_window.content = self.pickup_home_screen
         self.load_pos()
+
+        # Update the company display immediately
+        if hasattr(self, 'selection_label'):
+            selection_text = f"{self.selected_route}"
+            if self.selected_company:
+                selection_text += f" | {self.selected_company}"
+            self.selection_label.text = selection_text
 
     def download_delivery_route(self, widget):
         """Download delivery route data for selected route"""
@@ -613,9 +677,6 @@ class POApp(toga.App):
                     )
                     self.delivery_display_box.add(expected_label)
 
-
-
-
     def previous_delivery(self, widget):
         """Navigate to previous delivery"""
         if self.total_deliveries == 0:
@@ -662,7 +723,7 @@ class POApp(toga.App):
 
             # Create PDF using half-letter size
             doc = SimpleDocTemplate(
-                pdf_path,
+                str(pdf_path),
                 pagesize=(half_letter_width, half_letter_height),
                 leftMargin=left_margin,
                 rightMargin=right_margin,
@@ -862,7 +923,7 @@ class POApp(toga.App):
             # Build PDF
             doc.build(elements)
 
-            return pdf_path
+            return str(pdf_path)
 
         except Exception as e:
             print(f"Error generating simple PDF: {e}")
@@ -870,7 +931,7 @@ class POApp(toga.App):
             traceback.print_exc()
             return None
 
-    def print_current_receipt(self, widget):
+    async def print_current_receipt(self, widget):
         """Generate and save PDF receipt for current delivery"""
         if self.total_deliveries == 0:
             self.show_dialog_async("error", "No Data", "No deliveries loaded. Download route data first.")
@@ -878,6 +939,14 @@ class POApp(toga.App):
 
         if self.current_delivery_index >= self.total_deliveries:
             return
+
+        # Request storage permission on Android
+        if ANDROID:
+            granted = await self.AndroidPermissions.request_storage_permission()
+            if not granted:
+                self.show_dialog_async("error", "Permission Required",
+                                       "Storage permission is required to save PDF receipts.")
+                return
 
         # Get current delivery data
         current_company = self.delivery_companies[self.current_delivery_index]
@@ -888,7 +957,7 @@ class POApp(toga.App):
 
         if pdf_path:
             # Extract just the filename for display
-            pdf_filename = os.path.basename(pdf_path)
+            pdf_filename = Path(pdf_path).name
             route = self.selected_route
             date_folder = datetime.now().strftime("%Y-%m-%d")
 
@@ -898,7 +967,7 @@ class POApp(toga.App):
                 "PDF Generated Successfully",
                 f"Receipt for {current_company} has been saved.\n\n"
                 f"📁 Location:\n"
-                f"download/PickUpForms/{route}/{date_folder}/\n\n"
+                f"{pdf_path}\n\n"
                 f"📄 File: {pdf_filename}\n\n"
                 "To print or share:\n"
                 "1. Open your file manager\n"
@@ -906,14 +975,6 @@ class POApp(toga.App):
                 "3. Tap the PDF file to open\n"
                 "4. Use the print/share option"
             )
-
-            # Optionally, open the PDF viewer
-            async def open_pdf_viewer():
-                await asyncio.sleep(1)
-                if hasattr(webbrowser, 'open'):
-                    webbrowser.open(f'file://{pdf_path}')
-
-            asyncio.create_task(open_pdf_viewer())
         else:
             self.show_dialog_async("error", "PDF Generation Failed", "Could not generate PDF receipt")
 
@@ -1058,6 +1119,13 @@ class POApp(toga.App):
         else:
             self.main_window.content = self.pickup_home_screen
             self.load_pos()
+
+            # ADD THIS - Update the company display
+            if hasattr(self, 'selection_label'):
+                selection_text = f"{self.selected_route}"
+                if self.selected_company:
+                    selection_text += f" | {self.selected_company}"
+                self.selection_label.text = selection_text
 
     def load_settings(self):
         """Load app settings"""
@@ -1439,8 +1507,7 @@ class POApp(toga.App):
     def check_delivery_folder(self, widget=None):
         """Check and show the current delivery folder location"""
         current_date = datetime.now().strftime("%Y-%m-%d")
-        base_dir = "/storage/emulated/0/download/PickUpForms"
-        route_date_dir = os.path.join(base_dir, f"{self.selected_route}_{current_date}")
+        route_date_dir = os.path.join(self.pdf_base_dir, f"{self.selected_route}_{current_date}")
 
         # Check if directory exists
         if os.path.exists(route_date_dir):
@@ -1518,6 +1585,9 @@ class POApp(toga.App):
 
     def load_delivery_pos(self, widget=None):
         """Load and display delivery POs"""
+        if self.delivery_po_list_box is None:
+            return
+
         self.delivery_po_list_box.clear()
         self.delivery_checkboxes = []
 
@@ -2689,7 +2759,7 @@ class POApp(toga.App):
         """Handle user response to update confirmation"""
         if response:
             # User wants to update - start download
-            self.download_and_install_update()
+            asyncio.create_task(self.download_and_install_update())
         else:
             # User declined update
             self.show_dialog_async("info",
@@ -2697,176 +2767,340 @@ class POApp(toga.App):
                                    "You can check for updates later in the Settings menu."
                                    )
 
-    def download_and_install_update(self):
-        """Download the APK and attempt to install it automatically on Android."""
-        import threading
-        import time
-
-        def do_download():
-            try:
-                print(f"Starting download: {self.download_url}")
-
-                # Download the APK
-                download_response = requests.get(self.download_url, timeout=60)
-                if download_response.status_code != 200:
-                    error_msg = f"Failed to download update. Status: {download_response.status_code}"
-                    self.loop.call_soon_threadsafe(
-                        lambda: self.show_dialog_async("error", "Download Failed", error_msg)
-                    )
-                    return
-
-                downloads_dir = "/storage/emulated/0/Download"
-                os.makedirs(downloads_dir, exist_ok=True)
-
-                apk_path = os.path.join(downloads_dir, self.latest_filename)
-                with open(apk_path, "wb") as f:
-                    f.write(download_response.content)
-
-                file_size_mb = len(download_response.content) / (1024 * 1024)
-                print(f"Download complete: {apk_path} ({file_size_mb:.1f} MB)")
-
-                # Attempt install on Android
-                install_result = False
-                install_error = None
-                try:
-                    if ANDROID_AVAILABLE:
-                        install_result, install_error = self._try_auto_install_apk(apk_path)
-                    else:
-                        install_result = False
-                        install_error = "Android APIs not available."
-
-                except Exception as e:
-                    install_result = False
-                    install_error = str(e)
-
-                # Build success/fallback message
-                if install_result:
-                    success_message = (
-                        f"✅ Update downloaded and installer launched.\n\n"
-                        f"Version: v{self.latest_version}\n"
-                        f"Size: {file_size_mb:.1f} MB\n\n"
-                        "Follow the system prompts to complete the installation."
-                    )
-                    self.loop.call_soon_threadsafe(
-                        lambda: self.show_dialog_async("info", "Install Started", success_message)
-                    )
-                else:
-                    fallback_message = (
-                            f"✅ Update downloaded.\n\n"
-                            f"Version: v{self.latest_version}\n"
-                            f"Size: {file_size_mb:.1f} MB\n\n"
-                            f"Saved to: {apk_path}\n\n"
-                            "Automatic install failed: " + (install_error or "unknown reason") + "\n\n"
-                                                                                                 "Please open your file manager and tap the APK to install, or enable 'Install unknown apps' "
-                                                                                                 "for this app and try again."
-                    )
-                    self.loop.call_soon_threadsafe(
-                        lambda: self.show_dialog_async("info", "Download Complete", fallback_message)
-                    )
-
-            except Exception as e:
-                import traceback
-                traceback.print_exc()
-                self.loop.call_soon_threadsafe(
-                    lambda: self.show_dialog_async("error", "Download Error", f"Failed to download update:\n{e}")
-                )
-
-        thread = threading.Thread(target=do_download)
-        thread.daemon = True
-        thread.start()
-
     def _try_auto_install_apk(self, apk_path):
         """
         Try to install the APK programmatically.
         Returns (True, None) on success (installer Intent launched).
         Returns (False, error_message) on failure.
         """
-        try:
-            # Android imports (already guarded earlier)
-            from android import mActivity
-            from android.content import Intent
-            from android.net import Uri
-            from java.io import File
-            from android import activity  # may be available in some setups
-        except Exception:
-            # Can't access Android classes
-            return False, "Android API not available in runtime."
+        if not ANDROID:
+            return False, "Not running on Android"
 
         try:
-            file_obj = File(apk_path)
+            # Simple approach: Use Android's system intent
+            # This will work if the user has enabled "Install unknown apps" for this app
 
-            # Prefer FileProvider (content://) for secure sharing.
-            # Try to construct a content URI via FileProvider first. If FileProvider is not configured,
-            # fall back to Uri.fromFile (older devices) — may fail on newer Android.
+            # First check if APK exists
+            if not os.path.exists(apk_path):
+                return False, f"APK file not found: {apk_path}"
+
+            # Try to use Java/Android API via jnius if available
             try:
-                # Authority must match the one declared in your manifest (see manifest snippet below)
-                provider_authority = f"{mActivity.getPackageName()}.fileprovider"
-                FileProvider = __import__("androidx.core.content.FileProvider", fromlist=["FileProvider"])
-                # If import works, use content uri via FileProvider.getUriForFile
-                # Note: Chaquopy/jnius import of FileProvider may not work — fall back below.
-                content_uri = FileProvider.getUriForFile(mActivity, provider_authority, file_obj)
-                uri = content_uri
-                uses_fileprovider = True
-            except Exception:
-                # Fallback to file:// URI (may be blocked by platform)
-                uri = Uri.fromFile(file_obj)
-                uses_fileprovider = False
+                from jnius import autoclass
 
-            # On Android O+ (API 26+) need permission to install unknown apps for this package
-            try:
-                from android.os import Build
-                api_level = int(Build.VERSION.SDK_INT)
-            except Exception:
-                api_level = 0
+                # Get Android classes
+                PythonActivity = autoclass('org.kivy.android.PythonActivity')
+                Intent = autoclass('android.content.Intent')
+                Uri = autoclass('android.net.Uri')
+                File = autoclass('java.io.File')
 
-            if api_level >= 26:
-                # Check if this app is allowed to install packages
+                activity = PythonActivity.mActivity
+
+                # Check if file exists
+                apk_file = File(apk_path)
+                if not apk_file.exists():
+                    return False, f"APK file not found: {apk_path}"
+
+                # Try to get package name for FileProvider
+                package_name = activity.getPackageName()
+
+                # Create URI
                 try:
-                    pm = mActivity.getPackageManager()
-                    package_name = mActivity.getPackageName()
-                    # Using Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES to open settings if needed
-                    from android.provider import Settings
-                    can_request = mActivity.getPackageManager().canRequestPackageInstalls()
-                except Exception:
-                    can_request = True  # assume true if API not accessible
+                    # Try FileProvider first (Android 7.0+)
+                    FileProvider = autoclass('androidx.core.content.FileProvider')
+                    authority = f"{package_name}.fileprovider"
+                    content_uri = FileProvider.getUriForFile(
+                        activity,
+                        authority,
+                        apk_file
+                    )
+                    uri = content_uri
+                    use_fileprovider = True
+                except:
+                    # Fallback to file:// URI
+                    uri = Uri.fromFile(apk_file)
+                    use_fileprovider = False
 
-                if not can_request:
-                    # Open "Install unknown apps" settings for this package
-                    try:
-                        intent_settings = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
-                        intent_settings.setData(Uri.parse(f"package:{mActivity.getPackageName()}"))
-                        intent_settings.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        mActivity.startActivity(intent_settings)
-                        return False, "User needs to enable 'Install unknown apps' for this app."
-                    except Exception as e:
-                        return False, f"Cannot open unknown-sources settings: {e}"
-
-            # Create install intent
-            IntentClass = Intent
-            if hasattr(IntentClass, "ACTION_INSTALL_PACKAGE"):
-                install_intent = IntentClass(IntentClass.ACTION_INSTALL_PACKAGE)
+                # Create install intent
+                install_intent = Intent(Intent.ACTION_INSTALL_PACKAGE)
                 install_intent.setData(uri)
-                install_intent.putExtra("android.intent.extra.NOT_UNKNOWN_SOURCE", True)
-                # Grant read permission if using fileprovider/content uri
-                if uses_fileprovider:
-                    install_intent.addFlags(IntentClass.FLAG_GRANT_READ_URI_PERMISSION)
-                install_intent.setFlags(IntentClass.FLAG_ACTIVITY_NEW_TASK)
-            else:
-                # Fallback: ACTION_VIEW + setDataAndType
-                install_intent = IntentClass(IntentClass.ACTION_VIEW)
-                install_intent.setDataAndType(uri, "application/vnd.android.package-archive")
-                if uses_fileprovider:
-                    install_intent.addFlags(IntentClass.FLAG_GRANT_READ_URI_PERMISSION)
-                install_intent.setFlags(IntentClass.FLAG_ACTIVITY_NEW_TASK)
 
-            # Launch installer UI
-            mActivity.startActivity(install_intent)
-            return True, None
+                if use_fileprovider:
+                    install_intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+
+                install_intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                install_intent.putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, True)
+
+                # Start installation
+                activity.startActivity(install_intent)
+                return True, None
+
+            except ImportError:
+                # jnius not available - use a simpler approach
+                # This might not work on newer Android versions
+
+                # Try to use Android's package installer via adb-like command
+                # Note: This requires the app to have INSTALL_PACKAGES permission
+                import subprocess
+
+                try:
+                    # This command tries to install the APK
+                    result = subprocess.run(
+                        ['su', '-c', f'pm install -r {apk_path}'],
+                        capture_output=True,
+                        text=True,
+                        timeout=10
+                    )
+
+                    if 'Success' in result.stdout:
+                        return True, None
+                    else:
+                        return False, f"Install failed: {result.stdout} {result.stderr}"
+                except:
+                    # Fallback: Just tell user to install manually
+                    return False, "Please install manually via file manager"
+
+            except Exception as e:
+                return False, f"Install error: {str(e)}"
 
         except Exception as e:
             import traceback
             traceback.print_exc()
             return False, str(e)
+
+    async def request_android_permissions(self):
+        """Request Android permissions for Chaquopy/Toga 5.3"""
+        if not ANDROID or not ANDROID_IMPORTS_WORKING:
+            print("Not on Android or jnius not available")
+            return True
+
+        try:
+            print("Requesting permissions via Chaquopy/jnius...")
+
+            from jnius import autoclass, cast
+
+            # Get necessary Android classes
+            PythonActivity = autoclass('org.kivy.android.PythonActivity')
+            Context = autoclass('android.content.Context')
+            ActivityCompat = autoclass('androidx.core.app.ActivityCompat')
+            PermissionChecker = autoclass('androidx.core.content.PermissionChecker')
+
+            # Get current activity
+            activity = PythonActivity.mActivity
+
+            # Define permissions needed
+            permissions = [
+                "android.permission.READ_EXTERNAL_STORAGE",
+                "android.permission.WRITE_EXTERNAL_STORAGE",
+                "android.permission.INTERNET",
+                "android.permission.ACCESS_NETWORK_STATE",
+                "android.permission.REQUEST_INSTALL_PACKAGES",
+            ]
+
+            print(f"Checking {len(permissions)} permissions")
+
+            # Check current permission status
+            need_to_request = []
+            for permission in permissions:
+                result = PermissionChecker.checkSelfPermission(activity, permission)
+                # 0 = PERMISSION_GRANTED, -1 = PERMISSION_DENIED
+                if result != 0:
+                    need_to_request.append(permission)
+                    print(f"Need permission: {permission}")
+
+            # Request permissions if needed
+            if need_to_request:
+                print(f"Requesting {len(need_to_request)} permissions...")
+
+                # Convert to Java String array
+                String = autoclass('java.lang.String')
+                perm_array = autoclass('java.lang.reflect.Array')
+                permissions_java = perm_array.newInstance(String, len(need_to_request))
+
+                for i, perm in enumerate(need_to_request):
+                    perm_array.set(permissions_java, i, String(perm))
+
+                # Request permissions
+                ActivityCompat.requestPermissions(
+                    activity,
+                    permissions_java,
+                    1001  # Request code
+                )
+
+                print("Permission request dialog should appear")
+                return True
+            else:
+                print("All permissions already granted")
+                return True
+
+        except Exception as e:
+            print(f"Error requesting permissions in Chaquopy: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+
+    async def show_permission_explanation(self):
+        """Show explanation for why permissions are needed"""
+        message = (
+            "This app needs the following permissions:\n\n"
+            "• Storage: To save PDF receipts and download updates\n"
+            "• Internet: To sync data with the server\n"
+            "• Install apps: To update the app when new versions are available\n\n"
+            "Please grant these permissions when prompted."
+        )
+
+        await self.main_window.dialog(
+            toga.InfoDialog(
+                title="Permissions Required",
+                message=message
+            )
+        )
+
+
+    async def download_and_install_update(self):
+        """Download the APK and attempt to install it with proper permissions"""
+        try:
+            print(f"Starting download: {self.download_url}")
+
+            # Download the APK first (we'll try to install even without permissions)
+            import requests
+            response = requests.get(self.download_url, timeout=60)
+
+            if response.status_code != 200:
+                self.show_dialog_async("error", "Download Failed",
+                                       f"Failed to download update. Status: {response.status_code}")
+                return
+
+            # Save to appropriate location
+            # Try to use standard Android paths if available
+            downloads_dir = None
+
+            if ANDROID:
+                # Try common Android download locations
+                possible_paths = [
+                    "/storage/emulated/0/Download",
+                    "/sdcard/Download",
+                    "/storage/self/primary/Download",
+                ]
+
+                for path in possible_paths:
+                    if os.path.exists(path):
+                        downloads_dir = Path(path)
+                        break
+
+            # Fallback to app's data directory
+            if not downloads_dir:
+                downloads_dir = Path(self.data_dir) / "downloads"
+
+            downloads_dir.mkdir(parents=True, exist_ok=True)
+            apk_path = downloads_dir / self.latest_filename
+
+            with open(apk_path, "wb") as f:
+                f.write(response.content)
+
+            file_size_mb = len(response.content) / (1024 * 1024)
+            print(f"Download complete: {apk_path} ({file_size_mb:.1f} MB)")
+
+            # Attempt to install on Android
+            if ANDROID:
+                success, error = self._try_auto_install_apk(str(apk_path))
+
+                if success:
+                    success_message = (
+                        f"✅ Update downloaded and installer launched.\n\n"
+                        f"Version: v{self.latest_version}\n"
+                        f"Size: {file_size_mb:.1f} MB\n\n"
+                        "Follow the system prompts to complete the installation."
+                    )
+                    self.show_dialog_async("info", "Install Started", success_message)
+                else:
+                    # Show helpful message with the error
+                    if "permission" in error.lower() or "enable" in error.lower():
+                        # Permission-related error
+                        fallback_message = (
+                            f"✅ Update downloaded.\n\n"
+                            f"Version: v{self.latest_version}\n"
+                            f"Size: {file_size_mb:.1f} MB\n\n"
+                            f"Saved to: {apk_path}\n\n"
+                            f"To install:\n"
+                            f"1. Open your file manager app\n"
+                            f"2. Navigate to Downloads folder\n"
+                            f"3. Tap on: {self.latest_filename}\n"
+                            f"4. Allow installation from this source if prompted\n\n"
+                            f"Error: {error}"
+                        )
+                    else:
+                        # Other error
+                        fallback_message = (
+                            f"✅ Update downloaded.\n\n"
+                            f"Version: v{self.latest_version}\n"
+                            f"Size: {file_size_mb:.1f} MB\n\n"
+                            f"Saved to: {apk_path}\n\n"
+                            f"To install manually:\n"
+                            f"1. Open your file manager\n"
+                            f"2. Find the APK file\n"
+                            f"3. Tap to install\n\n"
+                            f"Error: {error}"
+                        )
+                    self.show_dialog_async("info", "Download Complete", fallback_message)
+            else:
+                # Not on Android
+                self.show_dialog_async("info", "Download Complete",
+                                       f"Update downloaded to: {apk_path}")
+
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            self.show_dialog_async("error", "Download Error",
+                                   f"Failed to download update:\n{str(e)}")
+
+
+    class AndroidPermissions:
+        """Helper class for Android permissions handling - SIMPLIFIED VERSION"""
+
+        @staticmethod
+        async def request_storage_permission():
+            """Request storage permission for Android - Simplified version"""
+            if not ANDROID:
+                return True
+
+            # In Chaquopy/Toga 5.3, we can't request permissions directly via Python
+            # The app should have these permissions from the manifest
+            # We'll just try to write a test file to check if we have permission
+
+            try:
+                # Try to write a test file to check permissions
+                test_dir = "/storage/emulated/0/Download"
+                if not os.path.exists(test_dir):
+                    test_dir = "/sdcard/Download"
+
+                if os.path.exists(test_dir):
+                    test_file = os.path.join(test_dir, "permission_test.txt")
+                    with open(test_file, "w") as f:
+                        f.write("test")
+                    os.remove(test_file)
+                    return True
+                else:
+                    # Try app's private storage
+                    import tempfile
+                    with tempfile.NamedTemporaryFile(mode="w", delete=True) as f:
+                        f.write("test")
+                    return True
+            except:
+                # We probably don't have storage permission
+                return False
+
+        @staticmethod
+        async def request_install_permission():
+            """Request install permission for Android 8.0+ - Simplified version"""
+            if not ANDROID:
+                return True
+
+            # In Chaquopy, we can't request this permission directly
+            # The system will prompt the user when we try to install
+            # Just return True and let the installation attempt handle it
+            return True
+
 
 
 def main():
