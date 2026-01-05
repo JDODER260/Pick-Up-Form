@@ -88,7 +88,7 @@ class POApp(toga.App):
 
         self.pdf_base_dir = "/storage/emulated/0/download/PickUpForms"
 
-        self.current_version = "2.2.3"  # Updated version for new features
+        self.current_version = "2.2.4"  # Updated version for new features
 
         # Data storage
         self.data_dir = None
@@ -96,6 +96,7 @@ class POApp(toga.App):
         self.settings_file = None
         self.company_db_file = None
         self.delivery_data_file = None
+        self.route_label = None
 
         # App state
         self.selected_route = ""
@@ -214,13 +215,8 @@ class POApp(toga.App):
         # Route/Company info
         info_box = toga.Box(style=Pack(direction=COLUMN, padding=10, background_color="#E8F5E9"))
 
-        route_label = toga.Label(
+        self.route_label = toga.Label(
             f"Route: {self.selected_route if self.selected_route else 'Not Selected'}",
-            style=Pack(font_size=16, padding_bottom=5)
-        )
-
-        company_label = toga.Label(
-            f"Company: {self.selected_company if self.selected_company else 'Not Selected'}",
             style=Pack(font_size=16, padding_bottom=5)
         )
 
@@ -229,8 +225,7 @@ class POApp(toga.App):
             style=Pack(font_size=16, padding_bottom=5)
         )
 
-        info_box.add(route_label)
-        info_box.add(company_label)
+        info_box.add(self.route_label)
         info_box.add(deliveries_label)
 
         # Action buttons
@@ -412,6 +407,15 @@ class POApp(toga.App):
         self.main_window.content = self.delivery_home_screen
         self.update_delivery_display()
 
+        if hasattr(self, 'selection_label'):
+            selection_text = f"{self.selected_route}"
+            if self.selected_company:
+                selection_text += f" | {self.selected_company}"
+            self.selection_label.text = selection_text
+            route_label = f"Route: {self.selected_route if self.selected_route else 'Not Selected'}"
+
+            self.route_label.text = route_label
+
     def switch_to_pickup_mode(self, widget):
         """Switch from delivery to pickup mode"""
         self.app_mode = "pickup"
@@ -419,12 +423,14 @@ class POApp(toga.App):
         self.main_window.content = self.pickup_home_screen
         self.load_pos()
 
-        # Update the company display immediately
         if hasattr(self, 'selection_label'):
             selection_text = f"{self.selected_route}"
             if self.selected_company:
                 selection_text += f" | {self.selected_company}"
             self.selection_label.text = selection_text
+            route_label = f"Route: {self.selected_route if self.selected_route else 'Not Selected'}"
+
+            self.route_label.text = route_label
 
     def download_delivery_route(self, widget):
         """Download delivery route data for selected route"""
@@ -1698,8 +1704,18 @@ class POApp(toga.App):
         if selected and selected != "No routes available":
             self.selected_route = selected
             self.save_settings()
+            if hasattr(self, 'selection_label'):
+                selection_text = f"{self.selected_route}"
+                if self.selected_company:
+                    selection_text += f" | {self.selected_company}"
+                self.selection_label.text = selection_text
+                route_label = f"Route: {self.selected_route if self.selected_route else 'Not Selected'}"
+
+                self.route_label.text = route_label
             self.update_route_company_lists()
             self.show_home()
+
+
 
     def create_home_screen(self):
         """Create main home screen with PO list"""

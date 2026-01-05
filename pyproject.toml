@@ -2,7 +2,8 @@
 [tool.briefcase]
 project_name = "Pick Up Form"
 bundle = "com.doublersharpening"
-version = "2.2.3"
+version = "2.2.4"
+platforms = ["android"]
 url = "https://doublersharpening.com"
 license.file = "LICENSE"
 author = "Judah Yoder"
@@ -55,7 +56,7 @@ permissions = [
     "MANAGE_EXTERNAL_STORAGE",
 ]
 orientation = "portrait"
-api = 35
+api = 36
 min_api = 21  # Android 4.1 Jelly Bean
 base_theme = "Theme.MaterialComponents.Light.DarkActionBar"
 build_gradle_dependencies = [
