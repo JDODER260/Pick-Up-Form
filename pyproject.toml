@@ -2,7 +2,7 @@
 [tool.briefcase]
 project_name = "Pick Up Form"
 bundle = "com.doublersharpening"
-version = "2.2.4"
+version = "2.2.5"
 platforms = ["android"]
 url = "https://doublersharpening.com"
 license.file = "LICENSE"

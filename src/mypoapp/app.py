@@ -69,6 +69,7 @@ else:
     ANDROID_IMPORTS_WORKING = False
     mActivity = None
 
+
 class POApp(toga.App):
     def __init__(self):
         super().__init__(
@@ -88,7 +89,7 @@ class POApp(toga.App):
 
         self.pdf_base_dir = "/storage/emulated/0/download/PickUpForms"
 
-        self.current_version = "2.2.4"  # Updated version for new features
+        self.current_version = "2.2.5"  # Updated version for new features
 
         # Data storage
         self.data_dir = None
@@ -116,12 +117,10 @@ class POApp(toga.App):
         self.current_delivery_index = 0
         self.total_deliveries = 0
 
-
         self.delivery_po_list_box = None
 
         # Updated main display order
         self.display_order = ["uploaded", "description", "company", "route"]
-
 
         print("POApp initialized with delivery mode")
 
@@ -135,13 +134,10 @@ class POApp(toga.App):
 
         os.makedirs(self.data_dir, exist_ok=True)
 
-        asyncio.create_task(self.request_android_permissions())
-
         # Load data
         self.load_settings()
         self.load_company_database()
         self.load_delivery_data()
-
 
         print(f"Loaded {len(self.available_routes)} routes")
         print(f"Running on Android: {ANDROID}")
@@ -1677,13 +1673,13 @@ class POApp(toga.App):
         # Route selection dropdown
         self.route_selection = toga.Selection(
             items=self.available_routes if self.available_routes else ["Mercer",
-            "Punxy",
-            "Middlefield",
-            "Sparty",
-            "Conneautville",
-            "Townville",
-            "Holmes County",
-            "Cochranton"],
+                                                                       "Punxy",
+                                                                       "Middlefield",
+                                                                       "Sparty",
+                                                                       "Conneautville",
+                                                                       "Townville",
+                                                                       "Holmes County",
+                                                                       "Cochranton"],
             style=Pack(padding_bottom=20)
         )
         main_box.add(self.route_selection)
@@ -1714,8 +1710,6 @@ class POApp(toga.App):
                 self.route_label.text = route_label
             self.update_route_company_lists()
             self.show_home()
-
-
 
     def create_home_screen(self):
         """Create main home screen with PO list"""
@@ -1749,7 +1743,6 @@ class POApp(toga.App):
         )
         button_box.add(change_route_btn)
         button_box.add(change_company_btn)
-
 
         # PO List
         self.po_list_box = toga.Box(style=Pack(direction=COLUMN, flex=1))
@@ -1894,7 +1887,6 @@ class POApp(toga.App):
             style=Pack(padding_bottom=10)
         )
         self.step1_box.add(self.blade_dropdown)
-
 
         # Custom description input (initially hidden)
         self.custom_desc_container = toga.Box(style=Pack(direction=COLUMN))
@@ -2884,77 +2876,6 @@ class POApp(toga.App):
             traceback.print_exc()
             return False, str(e)
 
-    async def request_android_permissions(self):
-        """Request Android permissions for Chaquopy/Toga 5.3"""
-        if not ANDROID or not ANDROID_IMPORTS_WORKING:
-            print("Not on Android or jnius not available")
-            return True
-
-        try:
-            print("Requesting permissions via Chaquopy/jnius...")
-
-            from jnius import autoclass, cast
-
-            # Get necessary Android classes
-            PythonActivity = autoclass('org.kivy.android.PythonActivity')
-            Context = autoclass('android.content.Context')
-            ActivityCompat = autoclass('androidx.core.app.ActivityCompat')
-            PermissionChecker = autoclass('androidx.core.content.PermissionChecker')
-
-            # Get current activity
-            activity = PythonActivity.mActivity
-
-            # Define permissions needed
-            permissions = [
-                "android.permission.READ_EXTERNAL_STORAGE",
-                "android.permission.WRITE_EXTERNAL_STORAGE",
-                "android.permission.INTERNET",
-                "android.permission.ACCESS_NETWORK_STATE",
-                "android.permission.REQUEST_INSTALL_PACKAGES",
-            ]
-
-            print(f"Checking {len(permissions)} permissions")
-
-            # Check current permission status
-            need_to_request = []
-            for permission in permissions:
-                result = PermissionChecker.checkSelfPermission(activity, permission)
-                # 0 = PERMISSION_GRANTED, -1 = PERMISSION_DENIED
-                if result != 0:
-                    need_to_request.append(permission)
-                    print(f"Need permission: {permission}")
-
-            # Request permissions if needed
-            if need_to_request:
-                print(f"Requesting {len(need_to_request)} permissions...")
-
-                # Convert to Java String array
-                String = autoclass('java.lang.String')
-                perm_array = autoclass('java.lang.reflect.Array')
-                permissions_java = perm_array.newInstance(String, len(need_to_request))
-
-                for i, perm in enumerate(need_to_request):
-                    perm_array.set(permissions_java, i, String(perm))
-
-                # Request permissions
-                ActivityCompat.requestPermissions(
-                    activity,
-                    permissions_java,
-                    1001  # Request code
-                )
-
-                print("Permission request dialog should appear")
-                return True
-            else:
-                print("All permissions already granted")
-                return True
-
-        except Exception as e:
-            print(f"Error requesting permissions in Chaquopy: {e}")
-            import traceback
-            traceback.print_exc()
-            return False
-
     async def show_permission_explanation(self):
         """Show explanation for why permissions are needed"""
         message = (
@@ -2972,104 +2893,129 @@ class POApp(toga.App):
             )
         )
 
-
     async def download_and_install_update(self):
-        """Download the APK and attempt to install it with proper permissions"""
+        import os
+        import asyncio
+        from pathlib import Path
+        import toga
+        import requests
+
+        # ----------------------------
+        # Save current UI
+        # ----------------------------
+        original_content = self.main_window.content
+
+        progress_bar = toga.ProgressBar(max=100)
+        progress_bar.value = 0
+
+        status_label = toga.Label(
+            "Downloading update... 0%",
+            style=toga.style.Pack(padding_bottom=10),
+        )
+
+        loading_box = toga.Box(
+            children=[status_label, progress_bar],
+            style=toga.style.Pack(
+                direction="column",
+                alignment="center",
+                padding=20,
+            ),
+        )
+
+        self.main_window.content = loading_box
+
         try:
-            print(f"Starting download: {self.download_url}")
+            loop = asyncio.get_running_loop()
 
-            # Download the APK first (we'll try to install even without permissions)
-            import requests
-            response = requests.get(self.download_url, timeout=60)
+            # ----------------------------
+            # Background download
+            # ----------------------------
+            def _download():
+                response = requests.get(self.download_url, stream=True, timeout=60)
+                response.raise_for_status()
 
-            if response.status_code != 200:
-                self.show_dialog_async("error", "Download Failed",
-                                       f"Failed to download update. Status: {response.status_code}")
-                return
+                total_size = int(response.headers.get("content-length", 0))
+                downloaded = 0
+                data = bytearray()
 
-            # Save to appropriate location
-            # Try to use standard Android paths if available
+                for chunk in response.iter_content(chunk_size=8192):
+                    if not chunk:
+                        continue
+
+                    data.extend(chunk)
+                    downloaded += len(chunk)
+
+                    if total_size > 0:
+                        percent = int((downloaded / total_size) * 100)
+                        asyncio.run_coroutine_threadsafe(
+                            _update_progress(percent),
+                            loop,
+                        )
+
+                return bytes(data)
+
+            async def _update_progress(percent):
+                progress_bar.value = percent
+                status_label.text = f"Downloading update... {percent}%"
+
+            apk_bytes = await asyncio.to_thread(_download)
+
+            # ----------------------------
+            # Resolve save location
+            # ----------------------------
             downloads_dir = None
 
             if ANDROID:
-                # Try common Android download locations
-                possible_paths = [
-                    "/storage/emulated/0/Download",
-                    "/sdcard/Download",
-                    "/storage/self/primary/Download",
-                ]
-
-                for path in possible_paths:
+                for path in (
+                        "/storage/emulated/0/Download",
+                        "/sdcard/Download",
+                        "/storage/self/primary/Download",
+                ):
                     if os.path.exists(path):
                         downloads_dir = Path(path)
                         break
 
-            # Fallback to app's data directory
             if not downloads_dir:
                 downloads_dir = Path(self.data_dir) / "downloads"
 
             downloads_dir.mkdir(parents=True, exist_ok=True)
             apk_path = downloads_dir / self.latest_filename
 
-            with open(apk_path, "wb") as f:
-                f.write(response.content)
+            await asyncio.to_thread(apk_path.write_bytes, apk_bytes)
 
-            file_size_mb = len(response.content) / (1024 * 1024)
-            print(f"Download complete: {apk_path} ({file_size_mb:.1f} MB)")
+            file_size_mb = len(apk_bytes) / (1024 * 1024)
 
-            # Attempt to install on Android
-            if ANDROID:
-                success, error = self._try_auto_install_apk(str(apk_path))
+            # ----------------------------
+            # Restore UI
+            # ----------------------------
+            self.main_window.content = original_content
 
-                if success:
-                    success_message = (
-                        f"✅ Update downloaded and installer launched.\n\n"
-                        f"Version: v{self.latest_version}\n"
-                        f"Size: {file_size_mb:.1f} MB\n\n"
-                        "Follow the system prompts to complete the installation."
-                    )
-                    self.show_dialog_async("info", "Install Started", success_message)
-                else:
-                    # Show helpful message with the error
-                    if "permission" in error.lower() or "enable" in error.lower():
-                        # Permission-related error
-                        fallback_message = (
-                            f"✅ Update downloaded.\n\n"
-                            f"Version: v{self.latest_version}\n"
-                            f"Size: {file_size_mb:.1f} MB\n\n"
-                            f"Saved to: {apk_path}\n\n"
-                            f"To install:\n"
-                            f"1. Open your file manager app\n"
-                            f"2. Navigate to Downloads folder\n"
-                            f"3. Tap on: {self.latest_filename}\n"
-                            f"4. Allow installation from this source if prompted\n\n"
-                            f"Error: {error}"
-                        )
-                    else:
-                        # Other error
-                        fallback_message = (
-                            f"✅ Update downloaded.\n\n"
-                            f"Version: v{self.latest_version}\n"
-                            f"Size: {file_size_mb:.1f} MB\n\n"
-                            f"Saved to: {apk_path}\n\n"
-                            f"To install manually:\n"
-                            f"1. Open your file manager\n"
-                            f"2. Find the APK file\n"
-                            f"3. Tap to install\n\n"
-                            f"Error: {error}"
-                        )
-                    self.show_dialog_async("info", "Download Complete", fallback_message)
-            else:
-                # Not on Android
-                self.show_dialog_async("info", "Download Complete",
-                                       f"Update downloaded to: {apk_path}")
+            self.show_dialog_async(
+                "info",
+                "Download Complete",
+                (
+                    f"✅ Update downloaded.\n\n"
+                    f"Version: v{self.latest_version}\n"
+                    f"Size: {file_size_mb:.1f} MB\n\n"
+                    f"Saved to:\n{apk_path}\n\n"
+                    f"To install:\n"
+                    f"1. Open your file manager\n"
+                    f"2. Go to Downloads\n"
+                    f"3. Tap {self.latest_filename}"
+                ),
+            )
 
         except Exception as e:
             import traceback
             traceback.print_exc()
-            self.show_dialog_async("error", "Download Error",
-                                   f"Failed to download update:\n{str(e)}")
 
+            self.main_window.content = original_content
+
+            self.show_dialog_async(
+                "error",
+                "Download Failed",
+                f"Failed to download update:\n{str(e)}",
+            )
 
     class AndroidPermissions:
         """Helper class for Android permissions handling - SIMPLIFIED VERSION"""
@@ -3116,7 +3062,6 @@ class POApp(toga.App):
             # The system will prompt the user when we try to install
             # Just return True and let the installation attempt handle it
             return True
-
 
 
 def main():
