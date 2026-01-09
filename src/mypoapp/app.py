@@ -89,7 +89,7 @@ class POApp(toga.App):
 
         self.pdf_base_dir = "/storage/emulated/0/download/PickUpForms"
 
-        self.current_version = "2.2.5"  # Updated version for new features
+        self.current_version = "2.2.6"  # Updated version for new features
 
         # Data storage
         self.data_dir = None
@@ -769,35 +769,40 @@ class POApp(toga.App):
             elements.append(Paragraph("Website: https://doublersharpening.com", website_style))
 
             # ===== COMPANY INFO =====
-            # Get PO numbers
-            po_numbers = []
-            for item in po_items:
-                po_num = item.get('po_number', '')
-                if po_num and str(po_num) not in po_numbers:
-                    po_numbers.append(str(po_num))
+            styles = getSampleStyleSheet()
+            small_style = styles["Normal"]
+            small_style.fontName = "Helvetica"
+            small_style.fontSize = 8
 
-            # Smaller column widths for half-letter
             info_col_widths = [0.8 * inch, 1.2 * inch, 0.8 * inch, 1.2 * inch]
+
             info_data = [
-                ["Company:", company_name[:20] + ('...' if len(company_name) > 20 else ''),
-                 "Pickup:", po_items[0].get('pickup_date', current_date)[:10] if po_items else current_date],
-                ["Delivery:", current_date, "Custom:",
-                 "_________________"]
+                [
+                    "Company:",
+                    Paragraph(company_name, small_style),  # <-- use Paragraph here
+                    "Pickup:",
+                    po_items.first().pick_up_date if po_items else current_date
+                ],
+                [
+                    "Delivery:",
+                    current_date,
+                    "Custom:",
+                    "_________________"
+                ]
             ]
 
             info_table = Table(info_data, colWidths=info_col_widths)
             info_table.setStyle(TableStyle([
                 ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-                ('FONTSIZE', (0, 0), (-1, -1), 8),  # Smaller font
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.black),  # Thinner lines
+                ('FONTSIZE', (0, 0), (-1, -1), 8),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
                 ('BACKGROUND', (0, 0), (0, -1), colors.lightgrey),
                 ('BACKGROUND', (2, 0), (2, -1), colors.lightgrey),
-                # Enable word wrapping for all cells
-                ('WORDWRAP', (0, 0), (-1, -1), True),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),  # optional: top-align for multi-line cells
             ]))
 
             elements.append(info_table)
-            elements.append(Spacer(1, 10))  # Less spacing
+            elements.append(Spacer(1, 10))
 
             # ===== TABLE DATA =====
             table_data = []
@@ -2459,9 +2464,6 @@ class POApp(toga.App):
 
     def show_route_selection(self, widget):
         self.main_window.content = self.route_selection_screen
-
-    # Keep the original methods for upload, delete, update, and checking updates
-    # These would be similar to your original code
 
     def upload_selected(self, widget):
         # Get selected indices from checkboxes
