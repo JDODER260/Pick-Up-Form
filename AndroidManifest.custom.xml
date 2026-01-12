@@ -1,15 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- File Provider for APK installation -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.doublersharpening.mypoapp">
+
+    <!-- Add storage permissions -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
+        tools:ignore="ScopedStorage" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
     <application>
+
+        <!-- File Provider for APK installation -->
         <provider
             android:name="androidx.core.content.FileProvider"
-            android:authorities="com.doublersharpening.mypoapp.fileprovider"
+            android:authorities="${applicationId}.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true">
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
+        <!-- Add activity for handling unknown app installation -->
+        <activity
+            android:name=".InstallAPKActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AppCompat.Translucent" />
+
     </application>
 </manifest>

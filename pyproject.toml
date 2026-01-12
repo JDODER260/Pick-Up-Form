@@ -1,8 +1,7 @@
-# This project was generated with 0.3.24 using template: https://github.com/beeware/briefcase-template @ v0.3.24
 [tool.briefcase]
 project_name = "Pick Up Form"
 bundle = "com.doublersharpening"
-version = "2.2.6"
+version = "2.2.7"
 platforms = ["android"]
 url = "https://doublersharpening.com"
 license.file = "LICENSE"
@@ -23,7 +22,7 @@ test_sources = [
 
 # Platform-agnostic dependencies only
 requires = [
-    "toga-core~=0.5.2",
+    "toga-core~=0.5.3",
     "requests>=2.28.0",
     "packaging>=21.3",
     "urllib3>=1.26.0",
@@ -37,7 +36,7 @@ test_requires = [
 # Android-specific
 [tool.briefcase.app.mypoapp.android]
 requires = [
-    "toga-android~=0.5.2",
+    "toga-android~=0.5.3",
 ]
 
 
@@ -66,24 +65,6 @@ build_gradle_dependencies = [
 ]
 version_code = 2
 
-# REMOVE other platform configurations since you said "android only"
-# Comment out or delete these sections:
-# [tool.briefcase.app.mypoapp.windows]
-# requires = [
-#     "toga-winforms~=0.5.2",
-# ]
-
-# [tool.briefcase.app.mypoapp.macOS]
-# universal_build = true
-# requires = [
-#     "toga-cocoa~=0.5.2",
-#     "std-nslog~=1.0.3",
-# ]
-
-# [tool.briefcase.app.mypoapp.linux]
-# requires = [
-#     "toga-gtk~=0.5.2",
-# ]
 
 [tool.briefcase.android]
 additional_resources = [
