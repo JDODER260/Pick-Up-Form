@@ -1133,6 +1133,8 @@ class POApp(toga.App):
         main_box.add(title)
         main_box.add(mode_label)
         main_box.add(mode_box)
+        main_box.add(theme_label)
+        main_box.add(self.theme_selection)
         main_box.add(db_label)
         main_box.add(manage_db_btn)
         main_box.add(sync_db_btn)
