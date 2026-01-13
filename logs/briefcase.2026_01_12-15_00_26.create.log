@@ -1,0 +1,363 @@
+Date/Time:       2026-01-12 15:00:30 
+Command line:    C:\Users\jdode\AppData\Local\Programs\Python\Python311\Scripts\briefcase create android
+
+OS Release:      Windows 10
+OS Version:      10.0.26100
+Architecture:    AMD64
+Platform:        Windows-10-10.0.26100-SP0
+
+Python exe:      C:\Users\jdode\AppData\Local\Programs\Python\Python311\python.exe
+Python version:  3.11.9 (tags/v3.11.9:de54cf5, Apr  2 2024, 10:12:12) [MSC v.1938 64 bit (AMD64)]
+Virtual env:     False
+Conda env:       False
+
+Briefcase:       0.3.26
+Target platform: android
+Target format:   gradle
+
+Environment Variables:
+	ALLUSERSPROFILE=C:\ProgramData
+	APPDATA=C:\Users\jdode\AppData\Roaming
+	CHOCOLATEYINSTALL=C:\ProgramData\chocolatey
+	CHOCOLATEYLASTPATHUPDATE=134126946384982883
+	CHOCOLATEYTOOLSLOCATION=C:\tools
+	COMMONPROGRAMFILES=C:\Program Files\Common Files
+	COMMONPROGRAMFILES(X86)=C:\Program Files (x86)\Common Files
+	COMMONPROGRAMW6432=C:\Program Files\Common Files
+	COMPUTERNAME=JDODER
+	COMSPEC=C:\WINDOWS\system32\cmd.exe
+	DB_HOST=localhost
+	DB_NAME=double_r
+	DB_PASSWORD=********************
+	DB_PORT=5432
+	DB_USER=main
+	DRIVERDATA=C:\Windows\System32\Drivers\DriverData
+	EFC_7580_1592913036=1
+	FIG_TERM=1
+	HOMEDRIVE=C:
+	HOMEPATH=\Users\jdode
+	INTELLIJ_TERMINAL_COMMAND_BLOCKS_REWORKED=1
+	JAVA_HOME=C:\Program Files\Eclipse Adoptium\jdk-21.0.7.6-hotspot\
+	JETBRAINS_INTELLIJ_COMMAND_END_MARKER=tEKfUq0NByZzClHemfbDaRX6foohvUPTGi8dhCB8UFdTxuydcom8H98Dr6wsQ123
+	LOCALAPPDATA=C:\Users\jdode\AppData\Local
+	LOGONSERVER=\\JDODER
+	NUMBER_OF_PROCESSORS=12
+	ONEDRIVE=C:\Users\jdode\OneDrive
+	ONEDRIVECONSUMER=C:\Users\jdode\OneDrive
+	OS=Windows_NT
+	PATH=C:\Program Files\Eclipse Adoptium\jdk-21.0.7.6-hotspot\bin;C:\Program Files (x86)\Common Files\Oracle\Java\java8path;C:\Program Files (x86)\Common Files\Oracle\Java\javapath;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Git\cmd;C:\Program Files\PostgreSQL\17\bin\psql.exe;C:\Program Files\dotnet\;C:\ProgramData\chocolatey\bin;C:\Users\jdode\AppData\Local\Programs\Python\Python311\Scripts;C:\Users\jdode\AppData\Local\Programs\Python\Python311;C:\Users\jdode\AppData\Local\Microsoft\WindowsApps;C:\Users\jdode\AppData\Local\GitHubDesktop\bin;C:\Program Files\JetBrains\PyCharm 2025.1.1.1\bin;;C:\Program Files\PostgreSQL\17\bin\psql.exe;;C:\tools\dart-sdk\bin;C:\Users\jdode\AppData\Local\Pub\Cache\bin
+	PATHEXT=.COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC;.CPL
+	PROCESSOR_ARCHITECTURE=AMD64
+	PROCESSOR_IDENTIFIER=Intel64 Family 6 Model 151 Stepping 5, GenuineIntel
+	PROCESSOR_LEVEL=6
+	PROCESSOR_REVISION=9705
+	PROCESS_LAUNCHED_BY_CW=1
+	PROCESS_LAUNCHED_BY_Q=1
+	PROGRAMDATA=C:\ProgramData
+	PROGRAMFILES=C:\Program Files
+	PROGRAMFILES(X86)=C:\Program Files (x86)
+	PROGRAMW6432=C:\Program Files
+	PSEXECUTIONPOLICYPREFERENCE=Bypass
+	PSMODULEPATH=C:\Users\jdode\Documents\WindowsPowerShell\Modules;C:\Program Files\WindowsPowerShell\Modules;C:\WINDOWS\system32\WindowsPowerShell\v1.0\Modules
+	PUBLIC=C:\Users\Public
+	PYCHARM=C:\Program Files\JetBrains\PyCharm 2025.1.1.1\bin;
+	SESSIONNAME=Console
+	SYSTEMDRIVE=C:
+	SYSTEMROOT=C:\WINDOWS
+	TEMP=C:\Users\jdode\AppData\Local\Temp
+	TERMINAL_EMULATOR=JetBrains-JediTerm
+	TERM_SESSION_ID=4f56774f-d8d2-44c3-bdc3-20e34e8e4ada
+	TMP=C:\Users\jdode\AppData\Local\Temp
+	USERDOMAIN=JDODER
+	USERDOMAIN_ROAMINGPROFILE=JDODER
+	USERNAME=jdode
+	USERPROFILE=C:\Users\jdode
+	WINDIR=C:\WINDOWS
+	ZES_ENABLE_SYSMAN=1
+
+pyproject.toml:
+[tool.briefcase]
+project_name = "Pick Up Form"
+bundle = "com.doublersharpening"
+version = "2.2.7"
+platforms = ["android"]
+url = "https://doublersharpening.com"
+license.file = "LICENSE"
+author = "Judah Yoder"
+author_email = "jdoder@outlook.com"
+
+[tool.briefcase.app.mypoapp]
+formal_name = "Pick Up Form"
+description = "Pick Up Management System"
+long_description = """App for managing and uploading Pick Up Forms"""
+icon = "src/mypoapp/resources/ic_launcher-web.png"
+sources = [
+    "src/mypoapp",
+]
+test_sources = [
+    "tests",
+]
+
+# Platform-agnostic dependencies only
+requires = [
+    "toga-core~=0.5.3",
+    "requests>=2.28.0",
+    "packaging>=21.3",
+    "urllib3>=1.26.0",
+    "reportlab>=4.0.4",
+]
+
+test_requires = [
+    "pytest",
+]
+
+# Android-specific
+[tool.briefcase.app.mypoapp.android]
+requires = [
+    "toga-android~=0.5.3",
+]
+
+
+
+permissions = [
+    "INTERNET",
+    "REQUEST_INSTALL_PACKAGES",
+    "ACCESS_NETWORK_STATE",
+    "WAKE_LOCK",
+    "POST_NOTIFICATIONS",
+    "READ_MEDIA_IMAGES",
+    "READ_MEDIA_VIDEO",
+    "READ_MEDIA_AUDIO",
+    "READ_EXTERNAL_STORAGE",
+    "WRITE_EXTERNAL_STORAGE",
+    "MANAGE_EXTERNAL_STORAGE",
+]
+orientation = "portrait"
+api = 36
+min_api = 21  # Android 4.1 Jelly Bean
+base_theme = "Theme.MaterialComponents.Light.DarkActionBar"
+build_gradle_dependencies = [
+    "com.google.android.material:material:1.6.1",  # For API 16 compatibility
+    "androidx.core:core-ktx:1.8.0",  # For API 16 compatibility
+    "androidx.appcompat:appcompat:1.4.2",  # For API 16 compatibility
+]
+version_code = 2
+
+
+[tool.briefcase.android]
+additional_resources = [
+    "src/mypoapp/resources/xml/file_paths.xml",
+    "AndroidManifest.custom.xml"
+]
+
+Briefcase Log:
+[15:00:23]                                                                                                                                                               java.py:111
+           [Java JDK] Evaluating JAVA_HOME...                                                                                                                            java.py:111
+           JAVA_HOME=C:\Program Files\Eclipse Adoptium\jdk-21.0.7.6-hotspot\                                                                                             java.py:112
+                                                                                                                                                                   subprocess.py:839
+           >>> Running Command:                                                                                                                                    subprocess.py:839
+           >>>     'C:\Program Files\Eclipse Adoptium\jdk-21.0.7.6-hotspot\bin\javac' -version                                                                     subprocess.py:839
+           >>> Working Directory:                                                                                                                                  subprocess.py:839
+           >>>     C:\Users\jdode\Documents\double r\Pick-Up-Form                                                                                                  subprocess.py:839
+           >>> Command Output:                                                                                                                                     subprocess.py:839
+           >>>     javac 21.0.7                                                                                                                                    subprocess.py:839
+           >>> Return code: 0                                                                                                                                      subprocess.py:839
+                                                                                                                                                                   subprocess.py:839
+                                                                                                                                                                         java.py:232
+           *************************************************************************                                                                                     java.py:232
+           ** WARNING: JAVA_HOME does not point to a Java 17 JDK            **                                                                                           java.py:232
+           *************************************************************************                                                                                     java.py:232
+                                                                                                                                                                         java.py:232
+               Android requires a Java 17 JDK, but the location pointed to by the                                                                                        java.py:232
+               JAVA_HOME environment variable:                                                                                                                           java.py:232
+                                                                                                                                                                         java.py:232
+               C:\Program Files\Eclipse Adoptium\jdk-21.0.7.6-hotspot\                                                                                                   java.py:232
+                                                                                                                                                                         java.py:232
+               isn't a Java 17 JDK (it appears to be Java 21.0.7).                                                                                                       java.py:232
+                                                                                                                                                                         java.py:232
+               Briefcase will proceed using its own JDK instance.                                                                                                        java.py:232
+                                                                                                                                                                         java.py:232
+           *************************************************************************                                                                                     java.py:232
+           Using JDK at C:\Users\jdode\AppData\Local\BeeWare\briefcase\Cache\tools\java17                                                                                java.py:263
+           Using Android SDK at C:\Users\jdode\AppData\Local\BeeWare\briefcase\Cache\tools\android_sdk                                                            android_sdk.py:376
+                                                                                                                                                                       create.py:930
+[15:00:24] The directory build\mypoapp\android\gradle already exists; overwrite [y/N]?                                                                                console.py:769
+           User input: y                                                                                                                                              console.py:769
+                                                                                                                                                                       create.py:942
+           [mypoapp] Removing old application template...                                                                                                              create.py:942
+[15:00:25]                                                                                                                                                             create.py:947
+           [mypoapp] Generating application template...                                                                                                                create.py:947
+           Using app template: https://github.com/beeware/briefcase-android-gradle-template.git, branch v0.3.26                                                         base.py:1320
+[15:00:26] Using existing template (sha 21524ca219a47c903ef4d23fe492c9a651f2561f, updated Mon Dec  1 10:13:53 2025)                                                     base.py:1221
+                                                                                                                                                                       create.py:969
+           [mypoapp] Installing support package...                                                                                                                     create.py:969
+           No support package required.                                                                                                                                create.py:329
+                                                                                                                                                                       create.py:987
+           [mypoapp] Installing application code...                                                                                                                    create.py:987
+           Saving log... started                                                                                                                                      console.py:443
+
+Main thread traceback:
+╭─────────────────────────────────────────────────────────────────────── Traceback (most recent call last) ────────────────────────────────────────────────────────────────────────╮
+│ C:\Users\jdode\AppData\Local\Programs\Python\Python311\Lib\site-packages\briefcase\__main__.py:27 in main                                                                        │
+│                                                                                                                                                                                  │
+│   24 │   │   │   Path.cwd() / "pyproject.toml",                                                                                                                                  │
+│   25 │   │   │   overrides=overrides,                                                                                                                                            │
+│   26 │   │   )                                                                                                                                                                   │
+│ ❱ 27 │   │   command(**options)                                                                                                                                                  │
+│   28 │   except HelpText as e:                                                                                                                                                   │
+│   29 │   │   console.info()                                                                                                                                                      │
+│   30 │   │   console.info(str(e))                                                                                                                                                │
+│                                                                                                                                                                                  │
+│ ╭─────────────────────────────────────────────── locals ────────────────────────────────────────────────╮                                                                        │
+│ │       command = <briefcase.platforms.android.gradle.GradleCreateCommand object at 0x000001D870167B50> │                                                                        │
+│ │       console = <briefcase.console.Console object at 0x000001D86F9451D0>                              │                                                                        │
+│ │ extra_cmdline = []                                                                                    │                                                                        │
+│ │       options = {}                                                                                    │                                                                        │
+│ │     overrides = {}                                                                                    │                                                                        │
+│ │        result = 0                                                                                     │                                                                        │
+│ ╰───────────────────────────────────────────────────────────────────────────────────────────────────────╯                                                                        │
+│                                                                                                                                                                                  │
+│ C:\Users\jdode\AppData\Local\Programs\Python\Python311\Lib\site-packages\briefcase\commands\create.py:1043 in __call__                                                           │
+│                                                                                                                                                                                  │
+│   1040 │   │                                                                                                                                                                     │
+│   1041 │   │   state = None                                                                                                                                                      │
+│   1042 │   │   for _, app_obj in sorted(apps_to_create.items()):                                                                                                                 │
+│ ❱ 1043 │   │   │   state = self.create_app(                                                                                                                                      │
+│   1044 │   │   │   │   app_obj,                                                                                                                                                  │
+│   1045 │   │   │   │   **full_options(state, options),                                                                                                                           │
+│   1046 │   │   │   )                                                                                                                                                             │
+│                                                                                                                                                                                  │
+│ ╭──────────────────────────────────────────────── locals ────────────────────────────────────────────────╮                                                                       │
+│ │              _ = 'mypoapp'                                                                             │                                                                       │
+│ │            app = None                                                                                  │                                                                       │
+│ │       app_name = None                                                                                  │                                                                       │
+│ │        app_obj = <com.doublersharpening.mypoapp v2.2.7 AppConfig>                                      │                                                                       │
+│ │ apps_to_create = {'mypoapp': <com.doublersharpening.mypoapp v2.2.7 AppConfig>}                         │                                                                       │
+│ │        options = {}                                                                                    │                                                                       │
+│ │           self = <briefcase.platforms.android.gradle.GradleCreateCommand object at 0x000001D870167B50> │                                                                       │
+│ │          state = None                                                                                  │                                                                       │
+│ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────╯                                                                       │
+│                                                                                                                                                                                  │
+│ C:\Users\jdode\AppData\Local\Programs\Python\Python311\Lib\site-packages\briefcase\commands\create.py:988 in create_app                                                          │
+│                                                                                                                                                                                  │
+│    985 │   │   │   self.verify_app(app)                                                                                                                                          │
+│    986 │   │   │                                                                                                                                                                 │
+│    987 │   │   │   self.console.info("Installing application code...", prefix=app.app_name)                                                                                      │
+│ ❱  988 │   │   │   self.install_app_code(app=app)                                                                                                                                │
+│    989 │   │   │                                                                                                                                                                 │
+│    990 │   │   │   self.console.info("Installing requirements...", prefix=app.app_name)                                                                                          │
+│    991 │   │   │   self.install_app_requirements(app=app)                                                                                                                        │
+│                                                                                                                                                                                  │
+│ ╭───────────────────────────────────────────────── locals ─────────────────────────────────────────────────╮                                                                     │
+│ │         app = <com.doublersharpening.mypoapp v2.2.7 AppConfig>                                           │                                                                     │
+│ │ bundle_path = WindowsPath('C:/Users/jdode/Documents/double r/Pick-Up-Form/build/mypoapp/android/gradle') │                                                                     │
+│ │     confirm = True                                                                                       │                                                                     │
+│ │     options = {}                                                                                         │                                                                     │
+│ │        self = <briefcase.platforms.android.gradle.GradleCreateCommand object at 0x000001D870167B50>      │                                                                     │
+│ ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────╯                                                                     │
+│                                                                                                                                                                                  │
+│ C:\Users\jdode\AppData\Local\Programs\Python\Python311\Lib\site-packages\briefcase\commands\create.py:735 in install_app_code                                                    │
+│                                                                                                                                                                                  │
+│    732 │   │   # Remove existing app folder if it exists                                                                                                                         │
+│    733 │   │   app_path = self.app_path(app)                                                                                                                                     │
+│    734 │   │   if app_path.exists():                                                                                                                                             │
+│ ❱  735 │   │   │   self.tools.shutil.rmtree(app_path)                                                                                                                            │
+│    736 │   │   self.tools.os.mkdir(app_path)                                                                                                                                     │
+│    737 │   │                                                                                                                                                                     │
+│    738 │   │   sources = app.all_sources()                                                                                                                                       │
+│                                                                                                                                                                                  │
+│ ╭───────────────────────────────────────────────────────── locals ──────────────────────────────────────────────────────────╮                                                    │
+│ │      app = <com.doublersharpening.mypoapp v2.2.7 AppConfig>                                                               │                                                    │
+│ │ app_path = WindowsPath('C:/Users/jdode/Documents/double r/Pick-Up-Form/build/mypoapp/android/gradle/app/src/main/python') │                                                    │
+│ │     self = <briefcase.platforms.android.gradle.GradleCreateCommand object at 0x000001D870167B50>                          │                                                    │
+│ ╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯                                                    │
+│                                                                                                                                                                                  │
+│ C:\Users\jdode\AppData\Local\Programs\Python\Python311\Lib\shutil.py:787 in rmtree                                                                                               │
+│                                                                                                                                                                                  │
+│    784 │   │   │   onerror(os.path.islink, path, sys.exc_info())                                                                                                                 │
+│    785 │   │   │   # can't continue even if onerror hook returns                                                                                                                 │
+│    786 │   │   │   return                                                                                                                                                        │
+│ ❱  787 │   │   return _rmtree_unsafe(path, onerror)                                                                                                                              │
+│    788                                                                                                                                                                           │
+│    789 # Allow introspection of whether or not the hardening against symlink                                                                                                     │
+│    790 # attacks is supported on the current platform                                                                                                                            │
+│                                                                                                                                                                                  │
+│ ╭──────────────────────────────────────────────────────────── locals ────────────────────────────────────────────────────────────╮                                               │
+│ │        dir_fd = None                                                                                                           │                                               │
+│ │ ignore_errors = False                                                                                                          │                                               │
+│ │          path = WindowsPath('C:/Users/jdode/Documents/double r/Pick-Up-Form/build/mypoapp/android/gradle/app/src/main/python') │                                               │
+│ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯                                               │
+│                                                                                                                                                                                  │
+│ C:\Users\jdode\AppData\Local\Programs\Python\Python311\Lib\shutil.py:634 in _rmtree_unsafe                                                                                       │
+│                                                                                                                                                                                  │
+│    631 │   │   │   try:                                                                                                                                                          │
+│    632 │   │   │   │   os.unlink(fullname)                                                                                                                                       │
+│    633 │   │   │   except OSError:                                                                                                                                               │
+│ ❱  634 │   │   │   │   onerror(os.unlink, fullname, sys.exc_info())                                                                                                              │
+│    635 │   try:                                                                                                                                                                  │
+│    636 │   │   os.rmdir(path)                                                                                                                                                    │
+│    637 │   except OSError:                                                                                                                                                       │
+│                                                                                                                                                                                  │
+│ ╭────────────────────────────────────────────────────────── locals ───────────────────────────────────────────────────────────╮                                                  │
+│ │    entries = [<DirEntry 'README'>]                                                                                          │                                                  │
+│ │      entry = <DirEntry 'README'>                                                                                            │                                                  │
+│ │   fullname = 'C:\\Users\\jdode\\Documents\\double r\\Pick-Up-Form\\build\\mypoapp\\android\\gradle\\app\\'+22               │                                                  │
+│ │       path = WindowsPath('C:/Users/jdode/Documents/double r/Pick-Up-Form/build/mypoapp/android/gradle/app/src/main/python') │                                                  │
+│ │ scandir_it = <nt.ScandirIterator object at 0x000001D872BD8F10>                                                              │                                                  │
+│ ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯                                                  │
+│                                                                                                                                                                                  │
+│ C:\Users\jdode\AppData\Local\Programs\Python\Python311\Lib\shutil.py:632 in _rmtree_unsafe                                                                                       │
+│                                                                                                                                                                                  │
+│    629 │   │   │   _rmtree_unsafe(fullname, onerror)                                                                                                                             │
+│    630 │   │   else:                                                                                                                                                             │
+│    631 │   │   │   try:                                                                                                                                                          │
+│ ❱  632 │   │   │   │   os.unlink(fullname)                                                                                                                                       │
+│    633 │   │   │   except OSError:                                                                                                                                               │
+│    634 │   │   │   │   onerror(os.unlink, fullname, sys.exc_info())                                                                                                              │
+│    635 │   try:                                                                                                                                                                  │
+│                                                                                                                                                                                  │
+│ ╭────────────────────────────────────────────────────────── locals ───────────────────────────────────────────────────────────╮                                                  │
+│ │    entries = [<DirEntry 'README'>]                                                                                          │                                                  │
+│ │      entry = <DirEntry 'README'>                                                                                            │                                                  │
+│ │   fullname = 'C:\\Users\\jdode\\Documents\\double r\\Pick-Up-Form\\build\\mypoapp\\android\\gradle\\app\\'+22               │                                                  │
+│ │       path = WindowsPath('C:/Users/jdode/Documents/double r/Pick-Up-Form/build/mypoapp/android/gradle/app/src/main/python') │                                                  │
+│ │ scandir_it = <nt.ScandirIterator object at 0x000001D872BD8F10>                                                              │                                                  │
+│ ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯                                                  │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+PermissionError: [WinError 32] The process cannot access the file because it is being used by another process: 'C:\\Users\\jdode\\Documents\\double r\\Pick-Up-Form\\build\\mypoapp\\android\\gradle\\app\\src\\main\\python\\README'
+           Collecting extra information for log... started                                                                                                            console.py:481
+                                                                                                                                                                      console.py:485
+           Extra information:                                                                                                                                         console.py:486
+                                                                                                                                                                   subprocess.py:839
+           >>> Running Command:                                                                                                                                    subprocess.py:839
+           >>>     'C:\Users\jdode\AppData\Local\BeeWare\briefcase\Cache\tools\android_sdk\cmdline-tools\19.0\bin\sdkmanager.bat' --list_installed                 subprocess.py:839
+           >>> Working Directory:                                                                                                                                  subprocess.py:839
+           >>>     C:\Users\jdode\Documents\double r\Pick-Up-Form                                                                                                  subprocess.py:839
+           >>> Environment Overrides:                                                                                                                              subprocess.py:839
+           >>>     ANDROID_HOME=C:\Users\jdode\AppData\Local\BeeWare\briefcase\Cache\tools\android_sdk                                                             subprocess.py:839
+           >>>     ANDROID_SDK_ROOT=C:\Users\jdode\AppData\Local\BeeWare\briefcase\Cache\tools\android_sdk                                                         subprocess.py:839
+           >>>     JAVA_HOME=C:\Users\jdode\AppData\Local\BeeWare\briefcase\Cache\tools\java17                                                                     subprocess.py:839
+[15:00:30] >>> Command Output:                                                                                                                                     subprocess.py:839
+           >>>     Loading package information...                                                                                                                  subprocess.py:839
+           >>>     Loading local repository...                                                                                                                     subprocess.py:839
+           >>>     [=========                              ] 25% Loading local repository...                                                                       subprocess.py:839
+           >>>     [=========                              ] 25% Fetch remote repository...                                                                        subprocess.py:839
+           >>>     [=======================================] 100% Fetch remote repository...                                                                       subprocess.py:839
+           >>>                                                                                                                                                     subprocess.py:839
+           >>>     Installed packages:                                                                                                                             subprocess.py:839
+           >>>       Path                                                  | Version | Description                                | Location                       subprocess.py:839
+           >>>       -------                                               | ------- | -------                                    | -------                        subprocess.py:839
+           >>>       build-tools;34.0.0                                    | 34.0.0  | Android SDK Build-Tools 34                 | build-tools\34.0.0             subprocess.py:839
+           >>>       build-tools;35.0.0                                    | 35.0.0  | Android SDK Build-Tools 35                 | build-tools\35.0.0             subprocess.py:839
+           >>>       emulator                                              | 35.6.11 | Android Emulator                           | emulator                       subprocess.py:839
+           >>>       platform-tools                                        | 36.0.0  | Android SDK Platform-Tools                 | platform-tools                 subprocess.py:839
+           >>>       platforms;android-34                                  | 3       | Android SDK Platform 34                    | platforms\android-34           subprocess.py:839
+           >>>       platforms;android-35                                  | 2       | Android SDK Platform 35                    | platforms\android-35           subprocess.py:839
+           >>>       system-images;android-31;default;x86_64               | 5       | Intel x86_64 Atom System Image             |                                subprocess.py:839
+           system-images\android-31\default\x86_64                                                                                                                                  
+           >>>       system-images;android-36;google_apis_playstore;x86_64 | 7       | Google Play Intel x86_64 Atom System Image |                                subprocess.py:839
+           system-images\android-36\google_apis_playstore\x86_64                                                                                                                    
+           >>>                                                                                                                                                     subprocess.py:839
+           >>> Return code: 0                                                                                                                                      subprocess.py:839
+                                                                                                                                                                   subprocess.py:839
+           Collecting extra information for log... done                                                                                                               console.py:481

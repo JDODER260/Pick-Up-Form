@@ -6,4 +6,29 @@
         name="internal_files"
         path="." />
 
+    <!-- External files directory (app-specific) -->
+    <external-files-path
+        name="external_files"
+        path="." />
+
+    <!-- External cache directory -->
+    <external-cache-path
+        name="external_cache"
+        path="." />
+
+    <!-- Downloads directory -->
+    <external-path
+        name="downloads"
+        path="Download" />
+
+    <!-- Root external storage -->
+    <external-path
+        name="external_storage"
+        path="." />
+
+    <!-- Legacy path for Android 10 and below -->
+    <external-files-path
+        name="external_app_files"
+        path="." />
+
 </paths>

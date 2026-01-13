@@ -69,6 +69,7 @@ else:
     ANDROID_IMPORTS_WORKING = False
     mActivity = None
 
+
 class POApp(toga.App):
     def __init__(self):
         super().__init__(
@@ -88,7 +89,7 @@ class POApp(toga.App):
 
         self.pdf_base_dir = "/storage/emulated/0/download/PickUpForms"
 
-        self.current_version = "2.2.4"  # Updated version for new features
+        self.current_version = "2.2.7"  # Updated version for new features
 
         # Data storage
         self.data_dir = None
@@ -104,6 +105,14 @@ class POApp(toga.App):
         self.driver_id = ""
         self.app_mode = "delivery"  # Default to delivery mode: "delivery" or "pickup"
 
+        # Theme state (light/dark/system) and brand colors
+        self.theme_preference = "system"  # "system" | "light" | "dark"
+        self.brand_red = "#D10024"
+        self.brand_blue = "#004b88"
+        self.bg_color = "white"
+        self.text_color = "black"
+        self.accent_color = self.brand_blue
+
         # Company database structure
         self.company_database = {}
         self.available_routes = []
@@ -116,12 +125,10 @@ class POApp(toga.App):
         self.current_delivery_index = 0
         self.total_deliveries = 0
 
-
         self.delivery_po_list_box = None
 
         # Updated main display order
         self.display_order = ["uploaded", "description", "company", "route"]
-
 
         print("POApp initialized with delivery mode")
 
@@ -135,13 +142,10 @@ class POApp(toga.App):
 
         os.makedirs(self.data_dir, exist_ok=True)
 
-        asyncio.create_task(self.request_android_permissions())
-
         # Load data
         self.load_settings()
         self.load_company_database()
         self.load_delivery_data()
-
 
         print(f"Loaded {len(self.available_routes)} routes")
         print(f"Running on Android: {ANDROID}")
@@ -162,15 +166,29 @@ class POApp(toga.App):
         self.settings_screen = self.create_settings_screen()
 
         # Create mode-specific screens
-        self.delivery_home_screen = self.create_delivery_home_screen
+        self.delivery_home_screen = self.create_delivery_home_screen()
         self.pickup_home_screen = self.create_pickup_home_screen()
         self.add_po_screen = self.create_add_po_screen()
+
+        # Apply current theme to screens
+        self.apply_theme(self.theme_preference)
 
         # Set initial screen based on mode
         if not self.selected_route:
             self.main_window.content = self.route_selection_screen
         else:
             self.main_window.content = self.delivery_home_screen if self.app_mode == "delivery" else self.pickup_home_screen
+            # Ensure data is loaded/rendered on first paint; otherwise pickup list can appear empty
+            # until the user navigates away/back.
+            if self.app_mode == "pickup":
+                self.load_pos()
+                if hasattr(self, 'selection_label'):
+                    selection_text = f"{self.selected_route}"
+                    if self.selected_company:
+                        selection_text += f" | {self.selected_company}"
+                    self.selection_label.text = selection_text
+            else:
+                self.update_delivery_display()
         print(f"Platform: {sys.platform}")
         print(f"Python version: {sys.version}")
         print(f"Toga version: {toga.__version__}")
@@ -190,7 +208,13 @@ class POApp(toga.App):
         print(f"Final ANDROID flag: {ANDROID}")
         self.main_window.show()
 
-    @property
+        # Enable Android hardware back button handling
+        try:
+            if ANDROID:
+                self.enable_android_back()
+        except Exception as e:
+            print(f"Failed to enable Android back handling: {e}")
+
     def create_delivery_home_screen(self):
         """Create delivery mode home screen"""
         main_box = toga.Box(style=Pack(direction=COLUMN, padding=10))
@@ -376,6 +400,7 @@ class POApp(toga.App):
         upload_btn = toga.Button("Upload", on_press=self.upload_selected, style=Pack(flex=1, padding=5))
         delete_btn = toga.Button("Delete", on_press=self.delete_selected, style=Pack(flex=1, padding=5))
 
+        select_all_btn = toga.Button("Select All", on_press=self.select_all_pos, style=Pack(flex=1, padding=5))
         update_btn = toga.Button("Update", on_press=self.update_selected, style=Pack(flex=1, padding=5))
         settings_btn = toga.Button("Settings", on_press=self.show_settings, style=Pack(flex=1, padding=5))
         # No refresh button - replaced with mode switch
@@ -384,6 +409,7 @@ class POApp(toga.App):
         row1.add(upload_btn)
         row1.add(delete_btn)
 
+        row2.add(select_all_btn)
         row2.add(update_btn)
         row2.add(settings_btn)
         # Leave empty space where refresh button was
@@ -773,35 +799,40 @@ class POApp(toga.App):
             elements.append(Paragraph("Website: https://doublersharpening.com", website_style))
 
             # ===== COMPANY INFO =====
-            # Get PO numbers
-            po_numbers = []
-            for item in po_items:
-                po_num = item.get('po_number', '')
-                if po_num and str(po_num) not in po_numbers:
-                    po_numbers.append(str(po_num))
+            styles = getSampleStyleSheet()
+            small_style = styles["Normal"]
+            small_style.fontName = "Helvetica"
+            small_style.fontSize = 8
 
-            # Smaller column widths for half-letter
             info_col_widths = [0.8 * inch, 1.2 * inch, 0.8 * inch, 1.2 * inch]
+            print(po_items[0])
             info_data = [
-                ["Company:", company_name[:20] + ('...' if len(company_name) > 20 else ''),
-                 "Pickup:", po_items[0].get('pickup_date', current_date)[:10] if po_items else current_date],
-                ["Delivery:", current_date, "Custom:",
-                 "_________________"]
+                [
+                    "Company:",
+                    Paragraph(company_name, small_style),  # <-- use Paragraph here
+                    "Pickup:",
+                    po_items[0]['pickup_date'] if po_items else current_date
+                ],
+                [
+                    "Delivery:",
+                    current_date,
+                    "Custom:",
+                    "_________________"
+                ]
             ]
 
             info_table = Table(info_data, colWidths=info_col_widths)
             info_table.setStyle(TableStyle([
                 ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-                ('FONTSIZE', (0, 0), (-1, -1), 8),  # Smaller font
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.black),  # Thinner lines
+                ('FONTSIZE', (0, 0), (-1, -1), 8),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
                 ('BACKGROUND', (0, 0), (0, -1), colors.lightgrey),
                 ('BACKGROUND', (2, 0), (2, -1), colors.lightgrey),
-                # Enable word wrapping for all cells
-                ('WORDWRAP', (0, 0), (-1, -1), True),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),  # optional: top-align for multi-line cells
             ]))
 
             elements.append(info_table)
-            elements.append(Spacer(1, 10))  # Less spacing
+            elements.append(Spacer(1, 10))
 
             # ===== TABLE DATA =====
             table_data = []
@@ -1011,6 +1042,27 @@ class POApp(toga.App):
         mode_box.add(self.mode_delivery_radio)
         mode_box.add(self.mode_pickup_radio)
 
+        # Theme selection
+        theme_label = toga.Label("Theme:", style=Pack(padding_top=10, padding_bottom=5))
+        self.theme_selection = toga.Selection(
+            items=["System", "Light", "Dark"],
+            style=Pack(padding_bottom=10)
+        )
+        # set current value
+        current_theme_label = {
+            "system": "System",
+            "light": "Light",
+            "dark": "Dark",
+        }.get(self.theme_preference, "System")
+        self.theme_selection.value = current_theme_label
+
+        def on_theme_change(widget):
+            label_to_pref = {"System": "system", "Light": "light", "Dark": "dark"}
+            pref = label_to_pref.get(widget.value, "system")
+            self.apply_theme(pref)
+            self.save_settings()
+        self.theme_selection.on_change = on_theme_change
+
         # Company Database Management
         db_label = toga.Label("Company Database:", style=Pack(padding_bottom=5))
         manage_db_btn = toga.Button(
@@ -1146,6 +1198,9 @@ class POApp(toga.App):
                     self.selected_company = settings.get("selected_company", "")
                     self.driver_id = settings.get("driver_id", "")
                     self.app_mode = settings.get("app_mode", "delivery")  # Default to delivery
+                    self.theme_preference = settings.get("theme_preference", self.theme_preference)
+                    # Apply theme after loading preference
+                    self.apply_theme(self.theme_preference)
         except Exception as e:
             print(f"Error loading settings: {e}")
 
@@ -1159,12 +1214,148 @@ class POApp(toga.App):
                 "selected_route": self.selected_route,
                 "selected_company": self.selected_company,
                 "driver_id": self.driver_id,
-                "app_mode": self.app_mode
+                "app_mode": self.app_mode,
+                "theme_preference": self.theme_preference,
             }
             with open(self.settings_file, "w") as f:
                 json.dump(settings, f, indent=2)
         except Exception as e:
             print(f"Error saving settings: {e}")
+
+    def detect_system_theme(self):
+        """Best-effort detect system theme. Returns 'light' or 'dark'."""
+        try:
+            if ANDROID and ANDROID_IMPORTS_WORKING:
+                from jnius import autoclass
+                UiModeManager = autoclass('android.app.UiModeManager')
+                Context = autoclass('android.content.Context')
+                activity = autoclass('org.kivy.android.PythonActivity').mActivity
+                ui_mode_manager = activity.getSystemService(Context.UI_MODE_SERVICE)
+                if ui_mode_manager.getNightMode() in [UiModeManager.MODE_NIGHT_YES]:
+                    return "dark"
+        except Exception as e:
+            print(f"System theme detect failed: {e}")
+        # Fallback
+        return "light"
+
+    def apply_theme(self, preference: str):
+        """Apply theme colors to entire widget tree based on preference."""
+        self.theme_preference = preference
+        effective = preference
+        if preference == "system":
+            effective = self.detect_system_theme()
+        if effective == "dark":
+            self.bg_color = "black"
+            self.text_color = "white"
+            self.accent_color = self.brand_red  # red as accent in dark
+            self.button_text_color = "white"
+        else:
+            self.bg_color = "white"
+            self.text_color = "black"
+            self.accent_color = self.brand_blue  # blue as accent in light
+            self.button_text_color = "white"
+
+        def _themeize(widget):
+            try:
+                # Backgrounds for containers
+                if isinstance(widget, toga.Box):
+                    widget.style.background_color = self.bg_color
+                if isinstance(widget, toga.ScrollContainer):
+                    widget.style.background_color = self.bg_color
+                # Text colors
+                if isinstance(widget, toga.Label):
+                    widget.style.color = self.text_color
+                if isinstance(widget, toga.TextInput):
+                    # Text color; some platforms ignore background on inputs
+                    widget.style.color = self.text_color
+                    # Make inputs readable against bg
+                    # widget.style.background_color may not be supported across platforms
+                if isinstance(widget, (toga.Button,)):
+                    widget.style.background_color = self.accent_color
+                    widget.style.color = self.button_text_color
+                if isinstance(widget, (toga.Switch, toga.Selection)):
+                    # Controls with labels/text
+                    widget.style.color = self.text_color
+                # Recurse into children if any
+                for child in getattr(widget, 'children', []) or []:
+                    _themeize(child)
+                # ScrollContainer has .content instead of .children
+                if hasattr(widget, 'content') and widget.content is not None and widget not in getattr(self, '_visited_theming', set()):
+                    _themeize(widget.content)
+            except Exception as e:
+                print(f"themeize error: {e}")
+
+        try:
+            # Apply to existing major screens if they exist
+            for box_name in [
+                'route_selection_screen', 'company_management_screen', 'settings_screen',
+                'pickup_home_screen', 'add_po_screen', 'delivery_home_screen'
+            ]:
+                box = getattr(self, box_name, None)
+                if box is not None:
+                    _themeize(box)
+            # Also theme the currently visible content
+            if getattr(self, 'main_window', None) and getattr(self.main_window, 'content', None):
+                _themeize(self.main_window.content)
+        except Exception as e:
+            print(f"apply_theme error: {e}")
+
+    def show_loading(self, message: str = "Loading..."):
+        """Show a blocking loading view by temporarily replacing window content (Toga 0.5.2-safe)."""
+        try:
+            # If already showing, just update
+            if getattr(self, '_loading_view', None) is not None:
+                if getattr(self, '_loading_label', None) is not None:
+                    self._loading_label.text = message
+                return
+
+            # Save current content
+            self._saved_content = getattr(self.main_window, 'content', None)
+
+            # Build a simple centered loading view
+            outer = toga.Box(style=Pack(direction=COLUMN, padding=20, alignment=CENTER, background_color=self.bg_color))
+            inner = toga.Box(style=Pack(direction=COLUMN, padding=20, alignment=CENTER, background_color=self.bg_color))
+            spinner = toga.ActivityIndicator(style=Pack(padding_bottom=10))
+            spinner.start()
+            label = toga.Label(message, style=Pack(color=self.text_color))
+            inner.add(spinner)
+            inner.add(label)
+            outer.add(inner)
+
+            self._loading_view = outer
+            self._loading_label = label
+            self.main_window.content = self._loading_view
+        except Exception as e:
+            print(f"show_loading error: {e}")
+
+    def hide_loading(self):
+        try:
+            # Preferred path: restore content swapped out by show_loading()
+            if getattr(self, '_loading_view', None) is not None:
+                saved = getattr(self, '_saved_content', None)
+                if saved is not None:
+                    self.main_window.content = saved
+                self._loading_view = None
+                self._loading_label = None
+                self._saved_content = None
+                return
+
+            # Legacy path (older overlay-based loading implementation)
+            if getattr(self, 'loading_overlay', None):
+                # Remove overlay while keeping original content (first child)
+                container = self.main_window.content
+                if isinstance(container, toga.Box) and len(container.children) >= 1:
+                    # Remove overlay
+                    container.children = [c for c in container.children if c is not self.loading_overlay]
+                    self.loading_overlay = None
+                    self.loading_label = None
+                    # If only one child left, set it as content directly
+                    if len(container.children) == 1:
+                        self.main_window.content = container.children[0]
+                else:
+                    self.main_window.content = container  # fallback
+        except Exception as e:
+            print(f"hide_loading error: {e}")
 
     def show_company_selection(self, widget=None):
         """Show company selection screen - works for both modes"""
@@ -1219,7 +1410,37 @@ class POApp(toga.App):
         self.main_window.content = main_box
 
     def select_company(self, company):
-        """Select a company"""
+        """Select a company; enforce that it has at least one frequent blade"""
+        # Enforce frequent blade rule
+        has_blades = True
+        if self.selected_route in self.company_database:
+            data = self.company_database[self.selected_route].get(company, {})
+            blades = data.get("frequent_blades", [])
+            if not blades:
+                has_blades = False
+        else:
+            has_blades = False
+
+        if not has_blades:
+            # Prompt user and navigate to management
+            self.show_dialog_async(
+                "error",
+                "No Blades Configured",
+                "This company has no frequent blades configured.\nPlease add at least one in Company Database."
+            )
+            # Navigate to management pre-selected
+            self.selected_company = company
+            self.save_settings()
+            self.main_window.content = self.company_management_screen
+            # Preselect in management if possible
+            if hasattr(self, 'manage_route_dropdown'):
+                self.manage_route_dropdown.value = self.selected_route
+                self.on_manage_route_change(self.manage_route_dropdown)
+                if hasattr(self, 'manage_company_dropdown'):
+                    self.manage_company_dropdown.value = company
+                    self.on_manage_company_change(self.manage_company_dropdown)
+            return
+
         self.selected_company = company
         self.save_settings()
 
@@ -1677,13 +1898,13 @@ class POApp(toga.App):
         # Route selection dropdown
         self.route_selection = toga.Selection(
             items=self.available_routes if self.available_routes else ["Mercer",
-            "Punxy",
-            "Middlefield",
-            "Sparty",
-            "Conneautville",
-            "Townville",
-            "Holmes County",
-            "Cochranton"],
+                                                                       "Punxy",
+                                                                       "Middlefield",
+                                                                       "Sparty",
+                                                                       "Conneautville",
+                                                                       "Townville",
+                                                                       "Holmes County",
+                                                                       "Cochranton"],
             style=Pack(padding_bottom=20)
         )
         main_box.add(self.route_selection)
@@ -1714,8 +1935,6 @@ class POApp(toga.App):
                 self.route_label.text = route_label
             self.update_route_company_lists()
             self.show_home()
-
-
 
     def create_home_screen(self):
         """Create main home screen with PO list"""
@@ -1749,7 +1968,6 @@ class POApp(toga.App):
         )
         button_box.add(change_route_btn)
         button_box.add(change_company_btn)
-
 
         # PO List
         self.po_list_box = toga.Box(style=Pack(direction=COLUMN, flex=1))
@@ -1895,7 +2113,6 @@ class POApp(toga.App):
         )
         self.step1_box.add(self.blade_dropdown)
 
-
         # Custom description input (initially hidden)
         self.custom_desc_container = toga.Box(style=Pack(direction=COLUMN))
         custom_desc_label = toga.Label("Custom Description:", style=Pack(padding_bottom=5))
@@ -1907,15 +2124,9 @@ class POApp(toga.App):
         self.custom_desc_container.add(self.custom_desc_input)
         self.step1_box.add(self.custom_desc_container)
 
-        # Next button for step 1
-        self.next_btn = toga.Button(
-            "Next",
-            on_press=self.go_to_step2,
-            style=Pack(padding_top=10)
-        )
-        self.step1_box.add(self.next_btn)
+        # Note: Removed explicit 'Next' button to simplify flow; both sections visible at once
 
-        # Step 2: Quantity and auto-date (initially hidden)
+        # Step 2: Quantity and date (now always visible)
         self.step2_box = toga.Box(style=Pack(direction=COLUMN))
 
         step2_label = toga.Label(
@@ -1939,22 +2150,15 @@ class POApp(toga.App):
         )
         self.step2_box.add(self.date_label)
 
-        # Step 2 buttons
+        # Action buttons for saving
         step2_btn_box = toga.Box(style=Pack(direction=ROW, padding_top=10))
-
-        self.back_btn = toga.Button(
-            "Back",
-            on_press=self.go_to_step1,
-            style=Pack(flex=1, padding_right=5)
-        )
 
         self.save_btn = toga.Button(
             "Save PO",
             on_press=self.save_po_form,
-            style=Pack(flex=1, padding_left=5)
+            style=Pack(flex=1)
         )
 
-        step2_btn_box.add(self.back_btn)
         step2_btn_box.add(self.save_btn)
         self.step2_box.add(step2_btn_box)
 
@@ -2039,6 +2243,20 @@ class POApp(toga.App):
                 self.show_dialog_async("error", "Missing Company", "Please select a company first")
                 return
 
+            # Enforce frequent blade association for selected company
+            blades_ok = False
+            if self.selected_route in self.company_database:
+                company_data = self.company_database[self.selected_route].get(self.selected_company, {})
+                blades = company_data.get("frequent_blades", [])
+                blades_ok = len(blades) > 0
+            if not blades_ok:
+                self.show_dialog_async(
+                    "error",
+                    "No Blades Configured",
+                    "This company has no frequent blades configured.\nPlease add at least one in Company Database."
+                )
+                return
+
             # Create PO object with new order
             po_data = {
                 "uploaded": "no",
@@ -2115,8 +2333,21 @@ class POApp(toga.App):
                 style=Pack(flex=1, font_size=14)
             )
 
+            edit_btn = toga.Button(
+                "Edit",
+                on_press=lambda w, idx=i: self.edit_po_at_index(idx),
+                style=Pack(width=70, padding_left=5, padding_right=5)
+            )
+            delete_btn = toga.Button(
+                "Delete",
+                on_press=lambda w, idx=i: self.delete_po_at_index(idx),
+                style=Pack(width=80)
+            )
+
             row_box.add(checkbox)
             row_box.add(label)
+            row_box.add(edit_btn)
+            row_box.add(delete_btn)
 
             self.po_list_box.add(row_box)
 
@@ -2130,6 +2361,89 @@ class POApp(toga.App):
         # Update screen if it exists
         if hasattr(self, 'add_po_screen'):
             self.update_add_po_screen()
+
+    def edit_po_at_index(self, index: int):
+        """Load a PO at index into the form for editing and navigate to the add/edit screen."""
+        try:
+            if not os.path.exists(self.data_file):
+                self.show_dialog_async("error", "No Data", "No saved pick up forms found.")
+                return
+            with open(self.data_file, "r") as f:
+                data = json.load(f)
+            if index < 0 or index >= len(data):
+                self.show_dialog_async("error", "Invalid Selection", "That item no longer exists.")
+                return
+            po = data[index]
+            # Set selection context
+            self.selected_route = po.get("route", self.selected_route)
+            self.selected_company = po.get("company", self.selected_company)
+            self.save_settings()
+
+            # Ensure blades list for selected company is up to date
+            self.update_frequent_blades_list()
+
+            # Prepare form fields
+            desc = po.get("description", "")
+            qty = str(po.get("quantity", ""))
+
+            # Navigate/create form if needed
+            if not hasattr(self, 'add_po_screen') or self.add_po_screen is None:
+                self.add_po_screen = self.create_add_po_screen()
+            self.update_add_po_screen()
+
+            # Fill quantity
+            if hasattr(self, 'qty_input'):
+                self.qty_input.value = qty
+
+            # Choose blade or custom
+            if hasattr(self, 'blade_dropdown') and hasattr(self, 'custom_desc_container') and hasattr(self, 'custom_desc_input'):
+                items = self.frequent_blades
+                if desc in items:
+                    # Select known blade
+                    try:
+                        self.blade_dropdown.value = desc
+                        self.custom_desc_container.visible = False
+                        self.custom_desc_input.value = ""
+                    except Exception:
+                        pass
+                else:
+                    # Use custom description
+                    try:
+                        # Ensure the custom option exists and is selected
+                        custom_label = "--- Enter Custom Description ---"
+                        if custom_label not in self.blade_dropdown.items:
+                            self.blade_dropdown.items = list(self.blade_dropdown.items) + [custom_label]
+                        self.blade_dropdown.value = custom_label
+                        self.custom_desc_container.visible = True
+                        self.custom_desc_input.value = desc
+                    except Exception:
+                        pass
+
+            # Set editing index and navigate
+            self.editing_index = index
+            if hasattr(self, 'selected_info_label'):
+                self.selected_info_label.text = f"{self.selected_route} | {self.selected_company}"
+            self.main_window.content = self.add_po_screen
+        except Exception as e:
+            self.show_dialog_async("error", "Error", f"Failed to load item: {str(e)}")
+
+    def delete_po_at_index(self, index: int):
+        """Delete a single PO entry and refresh the list."""
+        try:
+            if not os.path.exists(self.data_file):
+                return
+            with open(self.data_file, "r") as f:
+                data = json.load(f)
+            if index < 0 or index >= len(data):
+                return
+            # Remove the entry
+            data.pop(index)
+            with open(self.data_file, "w") as f:
+                json.dump(data, f, indent=2)
+            self.load_pos()
+            self.show_dialog_async("info", "Deleted", "The pick up form was deleted.")
+        except Exception as e:
+            self.show_dialog_async("error", "Error", f"Failed to delete: {str(e)}")
 
     def sync_company_db_ui(self, widget):
         """Sync company database from UI with deletion option"""
@@ -2177,19 +2491,37 @@ class POApp(toga.App):
         """Handle route change in company management screen"""
         selected_route = widget.value
         if selected_route:
-            # Clear current company and blade inputs
+            # Reset inputs
             self.new_company_input.value = ""
             self.new_blade_input.value = ""
-
-            # Clear the blades list display
-            self.blades_list.clear()
+            self._editing_blade = None
 
             # Update placeholder text to show selected route
-            self.new_company_input.placeholder = f"Company for {selected_route}"
+            self.new_company_input.placeholder = f"New company for {selected_route}"
 
-            # Optional: If you want to show existing companies in a dropdown
-            # You could add a company dropdown here if needed
+            # Populate company dropdown
+            companies = []
+            if selected_route in self.company_database:
+                companies = sorted(list(self.company_database[selected_route].keys()))
+            if hasattr(self, 'manage_company_dropdown'):
+                self.manage_company_dropdown.items = companies or ["<No companies>"]
+                self.manage_company_dropdown.value = companies[0] if companies else None
+
+            # Update blades list for first company (if any)
+            self.blades_list.clear()
+            if companies:
+                self.on_manage_company_change(self.manage_company_dropdown)
+
             print(f"Selected route for management: {selected_route}")
+
+    def on_manage_company_change(self, widget):
+        """Handle company change; refresh blades list."""
+        route = self.manage_route_dropdown.value or self.selected_route
+        company = widget.value
+        if route and company and route in self.company_database and company in self.company_database[route]:
+            self.update_blades_list(route, company)
+        else:
+            self.blades_list.clear()
 
     def create_company_management_screen(self):
         """Create company database management screen"""
@@ -2200,57 +2532,89 @@ class POApp(toga.App):
         # Route management
         route_label = toga.Label("Add/Remove Route:", style=Pack(padding_bottom=5))
 
-        route_box = toga.Box(style=Pack(direction=ROW, padding_bottom=10))
+        # Input with larger size
         self.new_route_input = toga.TextInput(
             placeholder="New route name",
-            style=Pack(flex=1, padding_right=5)
+            style=Pack(flex=1, padding=(6, 8), height=44, font_size=16, padding_bottom=6)
         )
+        # Buttons under the input
+        route_buttons = toga.Box(style=Pack(direction=ROW, padding_bottom=10))
         add_route_btn = toga.Button(
             "Add Route",
             on_press=self.add_route,
-            style=Pack(width=100)
+            style=Pack(flex=1, height=44, padding_right=5)
         )
-        route_box.add(self.new_route_input)
-        route_box.add(add_route_btn)
+        rename_route_btn = toga.Button(
+            "Rename Route",
+            on_press=self.rename_route,
+            style=Pack(flex=1, height=44, padding_right=5)
+        )
+        delete_route_btn = toga.Button(
+            "Delete Route",
+            on_press=self.delete_route,
+            style=Pack(flex=1, height=44)
+        )
+        route_buttons.add(add_route_btn)
+        route_buttons.add(rename_route_btn)
+        route_buttons.add(delete_route_btn)
 
         # Route selector for company management
         self.manage_route_dropdown = toga.Selection(
             items=self.available_routes,
             on_change=self.on_manage_route_change,
-            style=Pack(padding_bottom=10)
+            style=Pack(padding_bottom=10, height=44, font_size=16)
         )
 
-        # Company management
-        company_label = toga.Label("Add/Remove Company:", style=Pack(padding_bottom=5))
+        # Company selection & management
+        company_label = toga.Label("Companies:", style=Pack(padding_bottom=5))
 
-        company_box = toga.Box(style=Pack(direction=ROW, padding_bottom=10))
+        # Company selector for selected route
+        self.manage_company_dropdown = toga.Selection(
+            items=[],
+            on_change=self.on_manage_company_change,
+            style=Pack(padding_bottom=10, height=44, font_size=16)
+        )
+
+        # Larger input stacked with full-width buttons below
         self.new_company_input = toga.TextInput(
             placeholder="New company name",
-            style=Pack(flex=1, padding_right=5)
+            style=Pack(flex=1, padding=(6, 8), height=44, font_size=16, padding_bottom=6)
         )
+        company_buttons = toga.Box(style=Pack(direction=ROW, padding_bottom=10))
         add_company_btn = toga.Button(
-            "Add Company",
+            "Add",
             on_press=self.add_company,
-            style=Pack(width=100)
+            style=Pack(flex=1, height=44, padding_right=5)
         )
-        company_box.add(self.new_company_input)
-        company_box.add(add_company_btn)
+        rename_company_btn = toga.Button(
+            "Rename",
+            on_press=self.rename_company,
+            style=Pack(flex=1, height=44, padding_right=5)
+        )
+        delete_company_btn = toga.Button(
+            "Delete",
+            on_press=self.delete_company,
+            style=Pack(flex=1, height=44)
+        )
+        company_buttons.add(add_company_btn)
+        company_buttons.add(rename_company_btn)
+        company_buttons.add(delete_company_btn)
 
         # Frequent blades management for selected company
         blade_label = toga.Label("Add/Remove Frequent Blades:", style=Pack(padding_bottom=5))
 
-        blade_box = toga.Box(style=Pack(direction=ROW, padding_bottom=10))
+        # Larger input stacked with button below
         self.new_blade_input = toga.TextInput(
             placeholder="New blade description",
-            style=Pack(flex=1, padding_right=5)
+            style=Pack(flex=1, padding=(6, 8), height=44, font_size=16, padding_bottom=6)
         )
+        blade_buttons = toga.Box(style=Pack(direction=ROW, padding_bottom=10))
         add_blade_btn = toga.Button(
             "Add Blade",
             on_press=self.add_frequent_blade,
-            style=Pack(width=100)
+            style=Pack(flex=1, height=44)
         )
-        blade_box.add(self.new_blade_input)
-        blade_box.add(add_blade_btn)
+        blade_buttons.add(add_blade_btn)
 
         # Current blades list
         self.blades_list = toga.Box(style=Pack(direction=COLUMN, padding_bottom=10))
@@ -2275,12 +2639,16 @@ class POApp(toga.App):
 
         main_box.add(title)
         main_box.add(route_label)
-        main_box.add(route_box)
+        main_box.add(self.new_route_input)
+        main_box.add(route_buttons)
         main_box.add(self.manage_route_dropdown)
         main_box.add(company_label)
-        main_box.add(company_box)
+        main_box.add(self.manage_company_dropdown)
+        main_box.add(self.new_company_input)
+        main_box.add(company_buttons)
         main_box.add(blade_label)
-        main_box.add(blade_box)
+        main_box.add(self.new_blade_input)
+        main_box.add(blade_buttons)
         main_box.add(self.blades_list)
         main_box.add(button_box)
 
@@ -2298,6 +2666,49 @@ class POApp(toga.App):
             self.manage_route_dropdown.items = self.available_routes
             self.show_dialog_async("info", "Success", f"Route '{new_route}' added")
 
+    def rename_route(self, widget):
+        """Rename selected route to the text in new_route_input"""
+        old_route = self.manage_route_dropdown.value
+        new_name = self.new_route_input.value.strip()
+        if not old_route:
+            self.show_dialog_async("error", "No Route Selected", "Select a route to rename")
+            return
+        if not new_name:
+            self.show_dialog_async("error", "Missing Name", "Enter a new route name")
+            return
+        if new_name in self.company_database:
+            self.show_dialog_async("error", "Exists", "A route with that name already exists")
+            return
+        self.company_database[new_name] = self.company_database.pop(old_route)
+        # Update selected route references
+        if self.selected_route == old_route:
+            self.selected_route = new_name
+            self.save_settings()
+        self.update_route_company_lists()
+        self.manage_route_dropdown.items = self.available_routes
+        self.manage_route_dropdown.value = new_name
+        self.show_dialog_async("info", "Renamed", f"Route '{old_route}' renamed to '{new_name}'")
+
+    def delete_route(self, widget):
+        """Delete selected route"""
+        route = self.manage_route_dropdown.value
+        if not route:
+            self.show_dialog_async("error", "No Route Selected", "Select a route to delete")
+            return
+        try:
+            del self.company_database[route]
+            if self.selected_route == route:
+                self.selected_route = ""
+                self.selected_company = ""
+                self.save_settings()
+            self.update_route_company_lists()
+            self.manage_route_dropdown.items = self.available_routes
+            self.manage_company_dropdown.items = []
+            self.blades_list.clear()
+            self.show_dialog_async("info", "Deleted", f"Route '{route}' deleted")
+        except KeyError:
+            pass
+
     def add_company(self, widget):
         """Add new company to current route"""
         selected_route = self.manage_route_dropdown.value or self.selected_route
@@ -2311,12 +2722,79 @@ class POApp(toga.App):
                 self.company_database[selected_route][new_company] = {"frequent_blades": []}
                 self.new_company_input.value = ""
                 self.update_route_company_lists()
+                # Refresh company dropdown
+                companies = sorted(list(self.company_database[selected_route].keys()))
+                self.manage_company_dropdown.items = companies
+                self.manage_company_dropdown.value = new_company
                 self.show_dialog_async("info", "Success", f"Company '{new_company}' added")
 
+    def rename_company(self, widget):
+        """Rename selected company to text in new_company_input"""
+        route = self.manage_route_dropdown.value or self.selected_route
+        old_company = None
+        if hasattr(self, 'manage_company_dropdown'):
+            old_company = self.manage_company_dropdown.value
+        new_name = self.new_company_input.value.strip()
+        if not route:
+            self.show_dialog_async("error", "No Route", "Select a route first")
+            return
+        if not old_company:
+            self.show_dialog_async("error", "No Company", "Select a company to rename")
+            return
+        if not new_name:
+            self.show_dialog_async("error", "Missing Name", "Enter a new company name")
+            return
+        if new_name in self.company_database.get(route, {}):
+            self.show_dialog_async("error", "Exists", "A company with that name already exists on this route")
+            return
+        self.company_database[route][new_name] = self.company_database[route].pop(old_company)
+        if self.selected_company == old_company and self.selected_route == route:
+            self.selected_company = new_name
+            self.save_settings()
+        self.update_route_company_lists()
+        companies = sorted(list(self.company_database[route].keys()))
+        self.manage_company_dropdown.items = companies
+        self.manage_company_dropdown.value = new_name
+        self.update_blades_list(route, new_name)
+        self.show_dialog_async("info", "Renamed", f"Company '{old_company}' renamed to '{new_name}'")
+
+    def delete_company(self, widget):
+        """Delete selected company from selected route"""
+        route = self.manage_route_dropdown.value or self.selected_route
+        company = None
+        if hasattr(self, 'manage_company_dropdown'):
+            company = self.manage_company_dropdown.value
+        if not route or not company:
+            self.show_dialog_async("error", "Not Selected", "Select a route and company to delete")
+            return
+        try:
+            del self.company_database[route][company]
+            if self.selected_route == route and self.selected_company == company:
+                self.selected_company = ""
+                self.save_settings()
+            self.update_route_company_lists()
+            companies = sorted(list(self.company_database.get(route, {}).keys()))
+            self.manage_company_dropdown.items = companies
+            self.manage_company_dropdown.value = companies[0] if companies else None
+            self.blades_list.clear()
+            self.show_dialog_async("info", "Deleted", f"Company '{company}' deleted")
+        except KeyError:
+            pass
+
+    def start_edit_blade(self, route, company, blade):
+        """Start editing a blade by loading text into input."""
+        self._editing_blade = (route, company, blade)
+        self.new_blade_input.value = blade
+        self.new_blade_input.placeholder = f"Edit blade for {company}"
+
     def add_frequent_blade(self, widget):
-        """Add frequent blade to selected company"""
+        """Add or edit frequent blade to selected company"""
         selected_route = self.manage_route_dropdown.value or self.selected_route
-        selected_company = self.new_company_input.value.strip()
+        selected_company = None
+        if hasattr(self, 'manage_company_dropdown') and self.manage_company_dropdown.value:
+            selected_company = self.manage_company_dropdown.value
+        if not selected_company:
+            selected_company = self.new_company_input.value.strip()
         new_blade = self.new_blade_input.value.strip()
 
         if selected_route and selected_company and new_blade:
@@ -2327,15 +2805,38 @@ class POApp(toga.App):
                 if "frequent_blades" not in company_data:
                     company_data["frequent_blades"] = []
 
-                if new_blade not in company_data["frequent_blades"]:
-                    company_data["frequent_blades"].append(new_blade)
-                    self.new_blade_input.value = ""
+                # If in edit mode
+                if getattr(self, '_editing_blade', None):
+                    r, c, old_blade = self._editing_blade
+                    if r == selected_route and c == selected_company:
+                        try:
+                            idx = company_data["frequent_blades"].index(old_blade)
+                            company_data["frequent_blades"][idx] = new_blade
+                        except ValueError:
+                            if new_blade not in company_data["frequent_blades"]:
+                                company_data["frequent_blades"].append(new_blade)
+                    self._editing_blade = None
+                else:
+                    if new_blade not in company_data["frequent_blades"]:
+                        company_data["frequent_blades"].append(new_blade)
+                self.new_blade_input.value = ""
 
-                    # Update blades list display
-                    self.update_blades_list(selected_route, selected_company)
+                # Update blades list display
+                self.update_blades_list(selected_route, selected_company)
 
     def save_company_changes(self, widget):
-        """Save company database changes"""
+        """Save company database changes with validation that each company has at least 1 blade"""
+        # Validate: every company must have at least one frequent blade
+        for route, companies in self.company_database.items():
+            for company, data in companies.items():
+                blades = data.get("frequent_blades", [])
+                if not blades:
+                    self.show_dialog_async(
+                        "error",
+                        "Missing Blades",
+                        f"Company '{company}' on route '{route}' has no frequent blades.\nAdd at least one before saving."
+                    )
+                    return
         if self.save_company_database():
             self.show_dialog_async("info", "Success", "Company database saved")
         else:
@@ -2351,12 +2852,18 @@ class POApp(toga.App):
             for blade in blades:
                 blade_box = toga.Box(style=Pack(direction=ROW, padding=2))
                 blade_label = toga.Label(blade, style=Pack(flex=1))
+                edit_btn = toga.Button(
+                    "Edit",
+                    on_press=lambda w, b=blade: self.start_edit_blade(route, company, b),
+                    style=Pack(width=100, height=44, padding_right=5)
+                )
                 remove_btn = toga.Button(
                     "Remove",
                     on_press=lambda w, b=blade: self.remove_blade(route, company, b),
-                    style=Pack(width=80)
+                    style=Pack(width=100, height=44)
                 )
                 blade_box.add(blade_label)
+                blade_box.add(edit_btn)
                 blade_box.add(remove_btn)
                 self.blades_list.add(blade_box)
 
@@ -2446,11 +2953,11 @@ class POApp(toga.App):
         if hasattr(self, 'custom_desc_container'):
             self.custom_desc_container.visible = False
 
-        # Reset step visibility
+        # Ensure both sections are visible in simplified flow
         if hasattr(self, 'step1_box'):
             self.step1_box.visible = True
         if hasattr(self, 'step2_box'):
-            self.step2_box.visible = False
+            self.step2_box.visible = True
 
         # Update date
         if hasattr(self, 'date_label'):
@@ -2467,9 +2974,6 @@ class POApp(toga.App):
 
     def show_route_selection(self, widget):
         self.main_window.content = self.route_selection_screen
-
-    # Keep the original methods for upload, delete, update, and checking updates
-    # These would be similar to your original code
 
     def upload_selected(self, widget):
         # Get selected indices from checkboxes
@@ -2511,41 +3015,32 @@ class POApp(toga.App):
                     po['uploaded'] = False
                 to_upload.append(po)
 
-        try:
-            print(f"DEBUG: Uploading {len(to_upload)} POs to {self.upload_url}")
-            print(f"DEBUG: First PO data: {json.dumps(to_upload[0] if to_upload else {})}")
+        async def do_upload():
+            self.show_loading("Uploading...")
+            try:
+                def _post():
+                    return requests.post(self.upload_url, json=to_upload, timeout=30)
+                response = await asyncio.to_thread(_post)
+                if response.status_code == 200:
+                    # Mark as uploaded
+                    for i in selected:
+                        if i < len(all_pos):
+                            all_pos[i]["uploaded"] = True
+                    with open(self.data_file, "w") as f:
+                        json.dump(all_pos, f, indent=2)
+                    self.load_pos()
+                    self.show_dialog_async("info", "Success", f"{len(to_upload)} pick up form(s) uploaded successfully!")
+                else:
+                    self.show_dialog_async("error", "Error", f"Server responded: {response.status_code}\n{response.text}")
+            except Exception as e:
+                print(f"DEBUG: Upload exception: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                self.show_dialog_async("error", "Error", f"Upload failed: {str(e)}")
+            finally:
+                self.hide_loading()
 
-            response = requests.post(self.upload_url, json=to_upload, timeout=30)
-            print(f"DEBUG: Response status: {response.status_code}")
-            print(f"DEBUG: Response text: {response.text}")
-
-            if response.status_code == 200:
-                # Mark as uploaded
-                for i in selected:
-                    if i < len(all_pos):
-                        all_pos[i]["uploaded"] = True
-
-                with open(self.data_file, "w") as f:
-                    json.dump(all_pos, f, indent=2)
-
-                self.load_pos()
-                self.show_dialog_async("info",
-                                       "Success",
-                                       f"{len(to_upload)} pick up form(s) uploaded successfully!"
-                                       )
-            else:
-                self.show_dialog_async("error",
-                                       "Error",
-                                       f"Server responded: {response.status_code}\n{response.text}"
-                                       )
-        except Exception as e:
-            print(f"DEBUG: Upload exception: {str(e)}")
-            import traceback
-            traceback.print_exc()
-            self.show_dialog_async("error",
-                                   "Error",
-                                   f"Upload failed: {str(e)}"
-                                   )
+        asyncio.create_task(do_upload())
 
     def delete_selected(self, widget):
         # Get selected indices from checkboxes
@@ -2667,109 +3162,171 @@ class POApp(toga.App):
         # Show the add PO screen in edit mode
         self.main_window.content = self.add_po_screen
 
+    def select_all_pos(self, widget):
+        """Select all POs (turn on all switches in the pickup list)."""
+        try:
+            total = 0
+            for cb in getattr(self, 'checkboxes', []) or []:
+                cb.value = True
+                total += 1
+            if total == 0:
+                self.show_dialog_async("info", "No Items", "There are no pick up forms to select.")
+        except Exception as e:
+            print(f"Select All error: {e}")
+
+    def handle_back(self):
+        """Handle Android hardware back key. Return True if consumed."""
+        try:
+            content = getattr(self.main_window, 'content', None)
+            # If on add PO screen, go back to home in current mode
+            if content is getattr(self, 'add_po_screen', None):
+                self.show_home()
+                return True
+            # If on route/company selection or settings/management, go to current home
+            if content in [
+                getattr(self, 'route_selection_screen', None),
+                getattr(self, 'delivery_route_screen', None),
+                getattr(self, 'settings_screen', None),
+                getattr(self, 'company_management_screen', None),
+            ]:
+                self.show_current_home()
+                return True
+            # If in delivery mode and not on delivery home, navigate there
+            if self.app_mode == 'delivery' and content is not getattr(self, 'delivery_home_screen', None):
+                self.show_delivery_home()
+                return True
+            # If in pickup mode and not on pickup home, navigate there
+            if self.app_mode == 'pickup' and content is not getattr(self, 'pickup_home_screen', None):
+                self.show_home()
+                return True
+        except Exception as e:
+            print(f"handle_back error: {e}")
+        return False
+
+    def enable_android_back(self):
+        """Register an Android View.OnKeyListener to catch the hardware back button."""
+        if not ANDROID:
+            return
+        try:
+            from jnius import autoclass, PythonJavaClass, java_method
+
+            class _OnKeyListener(PythonJavaClass):
+                __javainterfaces__ = ['android/view/View$OnKeyListener']
+                __javacontext__ = 'app'
+
+                def __init__(self, py_app):
+                    super().__init__()
+                    self.py_app = py_app
+
+                @java_method('(Landroid/view/View;ILandroid/view/KeyEvent;)Z')
+                def onKey(self, v, keyCode, event):
+                    KeyEvent = autoclass('android.view.KeyEvent')
+                    # Consume only back key on action up
+                    if keyCode == KeyEvent.KEYCODE_BACK and event.getAction() == KeyEvent.ACTION_UP:
+                        try:
+                            return True if self.py_app.handle_back() else False
+                        except Exception as e:
+                            print(f"OnKey handler error: {e}")
+                            return False
+                    return False
+
+            try:
+                # Try getting the activity via android.mActivity
+                from android import mActivity
+                activity = mActivity
+            except Exception:
+                # Fallback to Kivy's PythonActivity if available
+                activity = autoclass('org.kivy.android.PythonActivity').mActivity
+
+            window = activity.getWindow()
+            decor = window.getDecorView()
+            listener = _OnKeyListener(self)
+            decor.setFocusableInTouchMode(True)
+            decor.requestFocus()
+            decor.setOnKeyListener(listener)
+            print("Android back button handler enabled")
+        except Exception as e:
+            print(f"Failed to register Android back handler: {e}")
+
     def check_for_updates(self, silent=False):
         """
-        Check for newer versions of the app on the server
+        Check for newer versions of the app on the server without blocking UI
         """
-        # SIMPLE VERSION: Run everything synchronously
-        # This will block the UI, but it's simple and works
-        try:
-            print("Checking for updates...")
+        async def _check():
+            if not silent:
+                self.show_loading("Checking for updates...")
+            try:
+                def _get():
+                    return requests.get(self.update_check_url, timeout=10)
+                response = await asyncio.to_thread(_get)
+                if response.status_code != 200:
+                    if not silent:
+                        self.show_dialog_async("info", "Update Check Failed",
+                                               "Could not connect to update server.\n\nPlease check your internet connection and try again.")
+                    return
 
-            # Fetch the directory listing
-            response = requests.get(self.update_check_url, timeout=10)
-            if response.status_code != 200:
-                if not silent:
-                    self.show_dialog_async("info",
-                                           "Update Check Failed",
-                                           "Could not connect to update server.\n\n"
-                                           "Please check your internet connection and try again."
-                                           )
-                return
+                pattern = r'<a href="(Pick Up Form-(\d+\.\d+\.\d+)-universal\.apk)">'
+                matches = re.findall(pattern, response.text)
+                if not matches:
+                    if not silent:
+                        self.show_dialog_async("info", "No Updates Found", "No update files found on server.")
+                    return
 
-            # Look for APK files
-            pattern = r'<a href="(Pick Up Form-(\d+\.\d+\.\d+)-universal\.apk)">'
-            matches = re.findall(pattern, response.text)
+                file_info = []
+                for full_match in matches:
+                    filename = full_match[0]
+                    version_num = full_match[1]
+                    encoded_filename = filename.replace(" ", "%20")
+                    file_info.append({
+                        'filename': filename,
+                        'version': version_num,
+                        'download_url': f"{self.update_check_url}{encoded_filename}"
+                    })
 
-            if not matches:
-                if not silent:
-                    self.show_dialog_async("info",
-                                           "No Updates Found",
-                                           "No update files found on server."
-                                           )
-                return
+                latest_info = max(file_info, key=lambda x: version.parse(x['version']))
+                latest_version = latest_info['version']
+                latest_filename = latest_info['filename']
+                download_url = latest_info['download_url']
 
-            # Extract filenames and versions
-            file_info = []
-            for full_match in matches:
-                filename = full_match[0]
-                version_num = full_match[1]
-                # Use encoded URL for download
-                encoded_filename = filename.replace(" ", "%20")
-                file_info.append({
-                    'filename': filename,
-                    'version': version_num,
-                    'download_url': f"{self.update_check_url}{encoded_filename}"
-                })
+                if version.parse(latest_version) > version.parse(self.current_version):
+                    self.latest_version = latest_version
+                    self.latest_filename = latest_filename
+                    self.download_url = download_url
 
-            # Find the latest version
-            latest_info = max(file_info, key=lambda x: version.parse(x['version']))
-            latest_version = latest_info['version']
-            latest_filename = latest_info['filename']
-            download_url = latest_info['download_url']
-
-            print(f"Current: {self.current_version}, Latest: {latest_version}")
-            print(f"Download URL: {download_url}")
-
-            # Compare versions
-            if version.parse(latest_version) > version.parse(self.current_version):
-                # Update available
-                self.latest_version = latest_version
-                self.latest_filename = latest_filename
-                self.download_url = download_url
-
-                update_message = (
-                    f"✨ New Version Available!\n\n"
-                    f"📱 Current: v{self.current_version}\n"
-                    f"🚀 Latest: v{latest_version}\n\n"
-                    f"Would you like to download and install the update now?"
-                )
-
-                # Show confirm dialog using async - FIXED for Toga 5.2
-                async def show_update_dialog():
-                    # In Toga 5.2, use main_window.dialog() with a ConfirmDialog
-                    result = await self.main_window.dialog(
-                        toga.ConfirmDialog(
-                            title="Update Available",
-                            message=update_message
-                        )
+                    update_message = (
+                        f"✨ New Version Available!\n\n"
+                        f"📱 Current: v{self.current_version}\n"
+                        f"🚀 Latest: v{latest_version}\n\n"
+                        f"Would you like to download and install the update now?"
                     )
 
-                    if result:
-                        self.handle_update_confirmation(True)
-                    else:
-                        self.handle_update_confirmation(False)
+                    async def show_update_dialog():
+                        result = await self.main_window.dialog(
+                            toga.ConfirmDialog(
+                                title="Update Available",
+                                message=update_message
+                            )
+                        )
+                        if result:
+                            self.handle_update_confirmation(True)
+                        else:
+                            self.handle_update_confirmation(False)
 
-                # Run the async dialog
-                asyncio.create_task(show_update_dialog())
-            else:
+                    asyncio.create_task(show_update_dialog())
+                else:
+                    if not silent:
+                        self.show_dialog_async("info", "✅ Up to Date",
+                                               f"You're running the latest version!\n\nVersion: v{self.current_version}")
+            except Exception as e:
+                print(f"Error checking for updates: {e}")
+                import traceback
+                traceback.print_exc()
                 if not silent:
-                    self.show_dialog_async("info",
-                                           "✅ Up to Date",
-                                           f"You're running the latest version!\n\n"
-                                           f"Version: v{self.current_version}"
-                                           )
-
-        except Exception as e:
-            print(f"Error checking for updates: {e}")
-            import traceback
-            traceback.print_exc()
-
-            if not silent:
-                self.show_dialog_async("error",
-                                       "❌ Update Failed",
-                                       f"An unexpected error occurred:\n{str(e)}"
-                                       )
+                    self.show_dialog_async("error", "❌ Update Failed", f"An unexpected error occurred:\n{str(e)}")
+            finally:
+                if not silent:
+                    self.hide_loading()
+        asyncio.create_task(_check())
 
     def handle_update_confirmation(self, response):
         """Handle user response to update confirmation"""
@@ -2884,77 +3441,6 @@ class POApp(toga.App):
             traceback.print_exc()
             return False, str(e)
 
-    async def request_android_permissions(self):
-        """Request Android permissions for Chaquopy/Toga 5.3"""
-        if not ANDROID or not ANDROID_IMPORTS_WORKING:
-            print("Not on Android or jnius not available")
-            return True
-
-        try:
-            print("Requesting permissions via Chaquopy/jnius...")
-
-            from jnius import autoclass, cast
-
-            # Get necessary Android classes
-            PythonActivity = autoclass('org.kivy.android.PythonActivity')
-            Context = autoclass('android.content.Context')
-            ActivityCompat = autoclass('androidx.core.app.ActivityCompat')
-            PermissionChecker = autoclass('androidx.core.content.PermissionChecker')
-
-            # Get current activity
-            activity = PythonActivity.mActivity
-
-            # Define permissions needed
-            permissions = [
-                "android.permission.READ_EXTERNAL_STORAGE",
-                "android.permission.WRITE_EXTERNAL_STORAGE",
-                "android.permission.INTERNET",
-                "android.permission.ACCESS_NETWORK_STATE",
-                "android.permission.REQUEST_INSTALL_PACKAGES",
-            ]
-
-            print(f"Checking {len(permissions)} permissions")
-
-            # Check current permission status
-            need_to_request = []
-            for permission in permissions:
-                result = PermissionChecker.checkSelfPermission(activity, permission)
-                # 0 = PERMISSION_GRANTED, -1 = PERMISSION_DENIED
-                if result != 0:
-                    need_to_request.append(permission)
-                    print(f"Need permission: {permission}")
-
-            # Request permissions if needed
-            if need_to_request:
-                print(f"Requesting {len(need_to_request)} permissions...")
-
-                # Convert to Java String array
-                String = autoclass('java.lang.String')
-                perm_array = autoclass('java.lang.reflect.Array')
-                permissions_java = perm_array.newInstance(String, len(need_to_request))
-
-                for i, perm in enumerate(need_to_request):
-                    perm_array.set(permissions_java, i, String(perm))
-
-                # Request permissions
-                ActivityCompat.requestPermissions(
-                    activity,
-                    permissions_java,
-                    1001  # Request code
-                )
-
-                print("Permission request dialog should appear")
-                return True
-            else:
-                print("All permissions already granted")
-                return True
-
-        except Exception as e:
-            print(f"Error requesting permissions in Chaquopy: {e}")
-            import traceback
-            traceback.print_exc()
-            return False
-
     async def show_permission_explanation(self):
         """Show explanation for why permissions are needed"""
         message = (
@@ -2972,104 +3458,129 @@ class POApp(toga.App):
             )
         )
 
-
     async def download_and_install_update(self):
-        """Download the APK and attempt to install it with proper permissions"""
+        import os
+        import asyncio
+        from pathlib import Path
+        import toga
+        import requests
+
+        # ----------------------------
+        # Save current UI
+        # ----------------------------
+        original_content = self.main_window.content
+
+        progress_bar = toga.ProgressBar(max=100)
+        progress_bar.value = 0
+
+        status_label = toga.Label(
+            "Downloading update... 0%",
+            style=toga.style.Pack(padding_bottom=10),
+        )
+
+        loading_box = toga.Box(
+            children=[status_label, progress_bar],
+            style=toga.style.Pack(
+                direction="column",
+                alignment="center",
+                padding=20,
+            ),
+        )
+
+        self.main_window.content = loading_box
+
         try:
-            print(f"Starting download: {self.download_url}")
+            loop = asyncio.get_running_loop()
 
-            # Download the APK first (we'll try to install even without permissions)
-            import requests
-            response = requests.get(self.download_url, timeout=60)
+            # ----------------------------
+            # Background download
+            # ----------------------------
+            def _download():
+                response = requests.get(self.download_url, stream=True, timeout=60)
+                response.raise_for_status()
 
-            if response.status_code != 200:
-                self.show_dialog_async("error", "Download Failed",
-                                       f"Failed to download update. Status: {response.status_code}")
-                return
+                total_size = int(response.headers.get("content-length", 0))
+                downloaded = 0
+                data = bytearray()
 
-            # Save to appropriate location
-            # Try to use standard Android paths if available
+                for chunk in response.iter_content(chunk_size=8192):
+                    if not chunk:
+                        continue
+
+                    data.extend(chunk)
+                    downloaded += len(chunk)
+
+                    if total_size > 0:
+                        percent = int((downloaded / total_size) * 100)
+                        asyncio.run_coroutine_threadsafe(
+                            _update_progress(percent),
+                            loop,
+                        )
+
+                return bytes(data)
+
+            async def _update_progress(percent):
+                progress_bar.value = percent
+                status_label.text = f"Downloading update... {percent}%"
+
+            apk_bytes = await asyncio.to_thread(_download)
+
+            # ----------------------------
+            # Resolve save location
+            # ----------------------------
             downloads_dir = None
 
             if ANDROID:
-                # Try common Android download locations
-                possible_paths = [
-                    "/storage/emulated/0/Download",
-                    "/sdcard/Download",
-                    "/storage/self/primary/Download",
-                ]
-
-                for path in possible_paths:
+                for path in (
+                        "/storage/emulated/0/Download",
+                        "/sdcard/Download",
+                        "/storage/self/primary/Download",
+                ):
                     if os.path.exists(path):
                         downloads_dir = Path(path)
                         break
 
-            # Fallback to app's data directory
             if not downloads_dir:
                 downloads_dir = Path(self.data_dir) / "downloads"
 
             downloads_dir.mkdir(parents=True, exist_ok=True)
             apk_path = downloads_dir / self.latest_filename
 
-            with open(apk_path, "wb") as f:
-                f.write(response.content)
+            await asyncio.to_thread(apk_path.write_bytes, apk_bytes)
 
-            file_size_mb = len(response.content) / (1024 * 1024)
-            print(f"Download complete: {apk_path} ({file_size_mb:.1f} MB)")
+            file_size_mb = len(apk_bytes) / (1024 * 1024)
 
-            # Attempt to install on Android
-            if ANDROID:
-                success, error = self._try_auto_install_apk(str(apk_path))
+            # ----------------------------
+            # Restore UI
+            # ----------------------------
+            self.main_window.content = original_content
 
-                if success:
-                    success_message = (
-                        f"✅ Update downloaded and installer launched.\n\n"
-                        f"Version: v{self.latest_version}\n"
-                        f"Size: {file_size_mb:.1f} MB\n\n"
-                        "Follow the system prompts to complete the installation."
-                    )
-                    self.show_dialog_async("info", "Install Started", success_message)
-                else:
-                    # Show helpful message with the error
-                    if "permission" in error.lower() or "enable" in error.lower():
-                        # Permission-related error
-                        fallback_message = (
-                            f"✅ Update downloaded.\n\n"
-                            f"Version: v{self.latest_version}\n"
-                            f"Size: {file_size_mb:.1f} MB\n\n"
-                            f"Saved to: {apk_path}\n\n"
-                            f"To install:\n"
-                            f"1. Open your file manager app\n"
-                            f"2. Navigate to Downloads folder\n"
-                            f"3. Tap on: {self.latest_filename}\n"
-                            f"4. Allow installation from this source if prompted\n\n"
-                            f"Error: {error}"
-                        )
-                    else:
-                        # Other error
-                        fallback_message = (
-                            f"✅ Update downloaded.\n\n"
-                            f"Version: v{self.latest_version}\n"
-                            f"Size: {file_size_mb:.1f} MB\n\n"
-                            f"Saved to: {apk_path}\n\n"
-                            f"To install manually:\n"
-                            f"1. Open your file manager\n"
-                            f"2. Find the APK file\n"
-                            f"3. Tap to install\n\n"
-                            f"Error: {error}"
-                        )
-                    self.show_dialog_async("info", "Download Complete", fallback_message)
-            else:
-                # Not on Android
-                self.show_dialog_async("info", "Download Complete",
-                                       f"Update downloaded to: {apk_path}")
+            self.show_dialog_async(
+                "info",
+                "Download Complete",
+                (
+                    f"✅ Update downloaded.\n\n"
+                    f"Version: v{self.latest_version}\n"
+                    f"Size: {file_size_mb:.1f} MB\n\n"
+                    f"Saved to:\n{apk_path}\n\n"
+                    f"To install:\n"
+                    f"1. Open your file manager\n"
+                    f"2. Go to Downloads\n"
+                    f"3. Tap {self.latest_filename}"
+                ),
+            )
 
         except Exception as e:
             import traceback
             traceback.print_exc()
-            self.show_dialog_async("error", "Download Error",
-                                   f"Failed to download update:\n{str(e)}")
 
+            self.main_window.content = original_content
+
+            self.show_dialog_async(
+                "error",
+                "Download Failed",
+                f"Failed to download update:\n{str(e)}",
+            )
 
     class AndroidPermissions:
         """Helper class for Android permissions handling - SIMPLIFIED VERSION"""
@@ -3116,7 +3627,6 @@ class POApp(toga.App):
             # The system will prompt the user when we try to install
             # Just return True and let the installation attempt handle it
             return True
-
 
 
 def main():
