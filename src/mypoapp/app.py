@@ -391,6 +391,7 @@ class POApp(toga.App):
         self.save_settings()
         self.main_window.content = self.delivery_home_screen
         self.update_delivery_display()
+        self.apply_theme(self.theme_preference)
 
         if hasattr(self, 'selection_label'):
             selection_text = f"{self.selected_route}"
@@ -407,6 +408,7 @@ class POApp(toga.App):
         self.save_settings()
         self.main_window.content = self.pickup_home_screen
         self.load_pos()
+        self.apply_theme(self.theme_preference)
 
         if hasattr(self, 'selection_label'):
             selection_text = f"{self.selected_route}"
@@ -1159,6 +1161,8 @@ class POApp(toga.App):
                     selection_text += f" | {self.selected_company}"
                 self.selection_label.text = selection_text
 
+        self.apply_theme(self.theme_preference)
+
     def load_settings(self):
         """Load app settings"""
         try:
@@ -1242,6 +1246,10 @@ class POApp(toga.App):
         if preference == "system":
             effective = self.detect_system_theme()
 
+        # Avoid persisting traversal state across calls; this can cause intermittent
+        # screens not being themed when the widget tree changes.
+        visited = set()
+
         same_theme = (
             getattr(self, "_applied_theme_preference", None) == preference
             and getattr(self, "_applied_effective_theme", None) == effective
@@ -1253,6 +1261,7 @@ class POApp(toga.App):
             self.text_color = "white"
             self.accent_color = self.brand_red  # red as accent in dark
             self.button_text_color = "white"
+            self.inactive_button_text_color = "white"
             self.dropdown_bg = "#2c2c2e"
             self.dropdown_text = "white"
             self.dropdown_border = "#3a3a3c"
@@ -1262,6 +1271,7 @@ class POApp(toga.App):
             self.text_color = "black"
             self.accent_color = self.brand_blue  # blue as accent in light
             self.button_text_color = "white"
+            self.inactive_button_text_color = "black"
             self.dropdown_bg = "#f2f2f7"
             self.dropdown_text = "black"
             self.dropdown_border = "#c7c7cc"
@@ -1281,12 +1291,12 @@ class POApp(toga.App):
 
                 # Button styling - ALL buttons get accent color by default
                 if isinstance(widget, toga.Button):
-                    widget.style.color = self.button_text_color
-
                     # Prefer semantic enabled/disabled state rather than guessing by button text.
                     if getattr(widget, 'enabled', True):
+                        widget.style.color = self.button_text_color
                         widget.style.background_color = self.accent_color
                     else:
+                        widget.style.color = self.inactive_button_text_color
                         widget.style.background_color = self.inactive_button_color
 
                 # CRITICAL: Selection widget (dropdown) styling
@@ -1325,16 +1335,21 @@ class POApp(toga.App):
                 if isinstance(widget, toga.Switch):
                     widget.style.color = self.text_color
 
+                    # Some platforms render switch surfaces with a default light background;
+                    # forcing a background helps text remain readable.
+                    try:
+                        widget.style.background_color = self.bg_color
+                    except Exception:
+                        pass
+
                 # Recurse into children
                 for child in getattr(widget, 'children', []) or []:
                     _themeize(child)
 
                 # Handle ScrollContainer content
                 if hasattr(widget, 'content') and widget.content is not None:
-                    if not hasattr(self, '_visited_theming'):
-                        self._visited_theming = set()
-                    if widget not in self._visited_theming:
-                        self._visited_theming.add(widget)
+                    if widget not in visited:
+                        visited.add(widget)
                         _themeize(widget.content)
 
             except Exception as e:
@@ -1351,10 +1366,6 @@ class POApp(toga.App):
             return
 
         try:
-            # Reset visited set
-            if hasattr(self, '_visited_theming'):
-                del self._visited_theming
-
             # Apply to all screens
             screen_names = [
                 'route_selection_screen', 'company_management_screen', 'settings_screen',
@@ -1523,37 +1534,7 @@ class POApp(toga.App):
         self.apply_theme(self.theme_preference)
 
     def select_company(self, company):
-        """Select a company; enforce that it has at least one frequent blade"""
-        # Enforce frequent blade rule
-        has_blades = True
-        if self.selected_route in self.company_database:
-            data = self.company_database[self.selected_route].get(company, {})
-            blades = data.get("frequent_blades", [])
-            if not blades:
-                has_blades = False
-        else:
-            has_blades = False
-
-        if not has_blades:
-            # Prompt user and navigate to management
-            self.show_dialog_async(
-                "error",
-                "No Blades Configured",
-                "This company has no frequent blades configured.\nPlease add at least one in Company Database."
-            )
-            # Navigate to management pre-selected
-            self.selected_company = company
-            self.save_settings()
-            self.main_window.content = self.company_management_screen
-            # Preselect in management if possible
-            if hasattr(self, 'manage_route_dropdown'):
-                self.manage_route_dropdown.value = self.selected_route
-                self.on_manage_route_change(self.manage_route_dropdown)
-                if hasattr(self, 'manage_company_dropdown'):
-                    self.manage_company_dropdown.value = company
-                    self.on_manage_company_change(self.manage_company_dropdown)
-            return
-
+        """Select a company."""
         self.selected_company = company
         self.save_settings()
 
@@ -1763,10 +1744,12 @@ class POApp(toga.App):
             self.delivery_route_label.text = f"Route: {self.selected_route}"
         self.main_window.content = self.delivery_home_screen
         self.load_delivery_pos()
+        self.apply_theme(self.theme_preference)
 
     def show_delivery_route_selection(self, widget=None):
         """Show delivery route selection screen"""
         self.main_window.content = self.delivery_route_screen
+        self.apply_theme(self.theme_preference)
 
     def create_route_order_screen(self):
 
@@ -2202,11 +2185,25 @@ class POApp(toga.App):
                 self.route_order_single_box.style.display = 'flex' if single else 'none'
             except Exception:
                 self.route_order_single_box.style.visibility = 'visible' if single else 'hidden'
+            # Some backends ignore display; also collapse the inactive container.
+            try:
+                self.route_order_single_box.style.visibility = 'visible' if single else 'hidden'
+                self.route_order_single_box.style.flex = 1 if single else 0
+                self.route_order_single_box.style.height = None if single else 0
+            except Exception:
+                pass
         if hasattr(self, 'route_order_overview_box'):
             try:
                 self.route_order_overview_box.style.display = 'none' if single else 'flex'
             except Exception:
                 self.route_order_overview_box.style.visibility = 'hidden' if single else 'visible'
+            # Some backends ignore display; also collapse the inactive container.
+            try:
+                self.route_order_overview_box.style.visibility = 'hidden' if single else 'visible'
+                self.route_order_overview_box.style.flex = 0 if single else 1
+                self.route_order_overview_box.style.height = 0 if single else None
+            except Exception:
+                pass
 
         if hasattr(self, 'route_order_prev_btn') and hasattr(self, 'route_order_next_btn'):
             self.route_order_prev_btn.enabled = single
@@ -3091,20 +3088,6 @@ class POApp(toga.App):
                 self.show_dialog_async("error", "Missing Company", "Please select a company first")
                 return
 
-            # Enforce frequent blade association for selected company
-            blades_ok = False
-            if self.selected_route in self.company_database:
-                company_data = self.company_database[self.selected_route].get(self.selected_company, {})
-                blades = company_data.get("frequent_blades", [])
-                blades_ok = len(blades) > 0
-            if not blades_ok:
-                self.show_dialog_async(
-                    "error",
-                    "No Blades Configured",
-                    "This company has no frequent blades configured.\nPlease add at least one in Company Database."
-                )
-                return
-
             # Create PO object with new order
             po_data = {
                 "uploaded": "no",
@@ -3796,19 +3779,24 @@ class POApp(toga.App):
 
         # Update blade dropdown items
         if hasattr(self, 'blade_dropdown'):
-            items = self.frequent_blades + ["--- Enter Custom Description ---"]
+            items = (self.frequent_blades or []) + ["--- Enter Custom Description ---"]
             self.blade_dropdown.items = items
 
             # Try to set to first item if available
             if items and len(items) > 0:
                 try:
-                    self.blade_dropdown.value = items[0]
+                    # If no frequent blades exist, default to custom entry.
+                    if len(items) == 1:
+                        self.blade_dropdown.value = "--- Enter Custom Description ---"
+                    else:
+                        self.blade_dropdown.value = items[0]
                 except:
                     pass
 
         # Reset visibility
         if hasattr(self, 'custom_desc_container'):
-            self.custom_desc_container.visible = False
+            selected = getattr(self, 'blade_dropdown', None).value if hasattr(self, 'blade_dropdown') else None
+            self.custom_desc_container.visible = (selected == "--- Enter Custom Description ---")
 
         # Ensure both sections are visible in simplified flow
         if hasattr(self, 'step1_box'):
@@ -3825,12 +3813,15 @@ class POApp(toga.App):
 
     def show_settings(self, widget):
         self.main_window.content = self.settings_screen
+        self.apply_theme(self.theme_preference)
 
     def show_company_management(self, widget):
         self.main_window.content = self.company_management_screen
+        self.apply_theme(self.theme_preference)
 
     def show_route_selection(self, widget):
         self.main_window.content = self.route_selection_screen
+        self.apply_theme(self.theme_preference)
 
     def upload_selected(self, widget):
         # Get selected indices from checkboxes
