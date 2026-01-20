@@ -1,7 +1,7 @@
 [tool.briefcase]
 project_name = "Pick Up Form"
 bundle = "com.doublersharpening"
-version = "2.2.7"
+version = "3.0.0"
 platforms = ["android"]
 url = "https://doublersharpening.com"
 license.file = "LICENSE"
@@ -63,7 +63,7 @@ build_gradle_dependencies = [
     "androidx.core:core-ktx:1.8.0",  # For API 16 compatibility
     "androidx.appcompat:appcompat:1.4.2",  # For API 16 compatibility
 ]
-version_code = 2
+version_code = 3
 
 
 [tool.briefcase.android]
