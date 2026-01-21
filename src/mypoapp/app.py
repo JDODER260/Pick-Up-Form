@@ -4196,16 +4196,27 @@ class POApp(toga.App):
             apk_bytes = await asyncio.to_thread(_download)
 
             # ----------------------------
-            # Resolve save location
+            # Resolve save location (Android Public Downloads)
             # ----------------------------
-            downloads_dir = Path(DownloadManager.get_download_directory())
+            try:
+                # Import Android classes via rubicon-java
+                from android.os import Environment
+
+                # Get /storage/emulated/0/Download
+                public_downloads = Environment.getExternalStoragePublicDirectory(
+                    Environment.DIRECTORY_DOWNLOADS
+                ).getAbsolutePath()
+
+                downloads_dir = Path(public_downloads)
+            except (ImportError, AttributeError):
+                # Fallback for non-Android platforms (e.g., during testing on Windows/Mac)
+                downloads_dir = Path.home() / "Downloads"
 
             downloads_dir.mkdir(parents=True, exist_ok=True)
             apk_path = downloads_dir / self.latest_filename
 
+            # Write the file
             await asyncio.to_thread(apk_path.write_bytes, apk_bytes)
-
-            file_size_mb = len(apk_bytes) / (1024 * 1024)
 
             # ----------------------------
             # Restore UI
