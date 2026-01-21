@@ -10,8 +10,8 @@ android {
 
     defaultConfig {
         applicationId "com.doublersharpening.mypoapp"
-        versionCode 2
-        versionName "2.2.7"
+        versionCode 3
+        versionName "3.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         // Briefcase currently requires API Level 24 for the `pidof` command, and the `--pid`

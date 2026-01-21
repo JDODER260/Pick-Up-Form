@@ -1,4 +1,4 @@
-# Generated 2026-01-13 10:07:44.101152
+# Generated 2026-01-21 11:28:44.850137
 toga-core~=0.5.3
 requests>=2.28.0
 packaging>=21.3
