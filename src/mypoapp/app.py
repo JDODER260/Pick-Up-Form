@@ -96,6 +96,7 @@ class POApp(toga.App):
         self._route_order_cached_version = None
         self._route_order_cached_dropdown_items = None
         self._route_order_overview_rendered_version = None
+        self._route_order_overview_cards = []
 
         self.delivery_po_list_box = None
 
@@ -1752,8 +1753,6 @@ class POApp(toga.App):
         self.apply_theme(self.theme_preference)
 
     def create_route_order_screen(self):
-
-
         main_box = toga.Box(style=Pack(direction=COLUMN, padding=20))
 
         title = toga.Label(
@@ -1848,25 +1847,23 @@ class POApp(toga.App):
         self.route_order_single_card.add(self.route_order_single_title)
         self.route_order_single_card.add(coords_box)
         self.route_order_single_card.add(self.route_order_single_latlon_input)
-        self.route_order_single_back_btn = toga.Button(
-            "← Back to Overview",
-            on_press=lambda w: self.toggle_route_order_view("overview"),
-            style=Pack(padding_top=10)
-        )
         self.route_order_single_box.add(self.route_order_single_header)
         self.route_order_single_box.add(self.route_order_single_card)
-        self.route_order_single_box.add(self.route_order_single_back_btn)
 
         # Overview view widgets (re-render list only when route data changes)
         self.route_order_overview_header = toga.Label(
             "",
             style=Pack(font_size=14, font_weight='bold', padding_bottom=10, text_align=CENTER)
         )
-        self.route_order_overview_list_box = toga.Box(style=Pack(direction=COLUMN))
+
+        # Create a box for the overview list; rely on the main screen scroll
+        self.route_order_overview_list_box = toga.Box(style=Pack(direction=COLUMN, flex=1))
+
         self.route_order_overview_box.add(self.route_order_overview_header)
         self.route_order_overview_box.add(self.route_order_overview_list_box)
 
-        scroll = toga.ScrollContainer(content=self.route_order_content_box, style=Pack(flex=1))
+        # Main scroll container for the entire screen
+        main_scroll = toga.ScrollContainer(content=self.route_order_content_box, style=Pack(flex=1))
 
         # Navigation Buttons (for single view)
         nav_box = toga.Box(style=Pack(direction=ROW, padding_top=5, padding_bottom=5))
@@ -1905,15 +1902,25 @@ class POApp(toga.App):
         main_box.add(self.route_order_stop_selection)
         main_box.add(view_box)
         main_box.add(fetch_btn)
-        main_box.add(scroll)
+        main_box.add(main_scroll)
         main_box.add(nav_box)
         main_box.add(button_box)
+
+        # Initialize caching attributes
+        self._route_order_data_version = 0
+        self._route_order_cached_version = None
+        self._route_order_cached_ordered = None
+        self._route_order_cached_dropdown_items = None
+        self._route_order_overview_rendered_version = None
+        self._route_order_cached_overview_widgets = None  # Cache for overview widgets
+        self._route_order_view_mode = getattr(self, 'route_order_view_mode', 'single')
+        self.route_order_current_index = 0
 
         # Initialize
         self.load_route_order_data()
         self.render_route_order_stops(force_overview=True)
         self.update_view_buttons()
-        self.apply_theme(self.theme_preference)# Update button states
+        self.apply_theme(self.theme_preference)
 
         return toga.ScrollContainer(content=main_box, style=Pack(flex=1))
 
@@ -1929,55 +1936,6 @@ class POApp(toga.App):
             print(f"Switched to {view_mode} view")
         except Exception as e:
             print(f"Error changing view: {e}")
-
-    def show_copy_coords_popup(self, lat, lon):
-        """Shows coordinates in a copyable text field within the main window."""
-        coords_text = f"{lat}, {lon}"
-
-        # Clear the popup overlay first
-        self.popup_overlay.remove(self.popup_overlay.children[0])
-
-        # Create the popup content
-        popup_content = toga.Box(style=Pack(direction=COLUMN, padding=10))
-
-        # Add title
-        title = toga.Label(
-            "Copy Coordinates",
-            style=Pack(font_size=16, font_weight="bold", padding_bottom=10)
-        )
-
-        # Add instructions
-        instructions = toga.Label(
-            "Select and copy the text below:",
-            style=Pack(padding_bottom=5)
-        )
-
-        # Add the text input for copying
-        coords_input = toga.TextInput(
-            value=coords_text,
-            readonly=True,
-            style=Pack(padding_bottom=15, width=250)
-        )
-
-        # Add close button
-        close_btn = toga.Button(
-            "Close",
-            on_press=lambda w: self.hide_popup(),
-            style=Pack(padding_top=5, width=100)
-        )
-
-        popup_content.add(title)
-        popup_content.add(instructions)
-        popup_content.add(coords_input)
-        popup_content.add(close_btn)
-
-        # Add the popup content to the overlay
-        self.popup_overlay.add(popup_content)
-
-    def hide_popup(self):
-        """Hides the popup by replacing it with an empty label."""
-        self.popup_overlay.remove(self.popup_overlay.children[0])
-        self.popup_overlay.add(toga.Label(""))
 
     def on_route_order_stop_change(self, widget):
         """Handle stop selection change"""
@@ -2074,7 +2032,7 @@ class POApp(toga.App):
         """Refresh the route order display"""
         try:
             self.load_route_order_data()
-            self.render_route_order_stops()
+            self.render_route_order_stops(force_overview=True)  # Force rebuild on refresh
             print("Route order refreshed")
         except Exception as e:
             print(f"Error refreshing route order: {e}")
@@ -2100,7 +2058,7 @@ class POApp(toga.App):
                 self.selected_route = widget.value
                 self.save_settings()
                 self.load_route_order_data()
-                self.render_route_order_stops()
+                self.render_route_order_stops(force_overview=True)  # Force rebuild on route change
         except Exception as e:
             print(f"Route change error: {e}")
 
@@ -2180,36 +2138,60 @@ class POApp(toga.App):
 
     def _route_order_set_view_visibility(self):
         single = self.route_order_view_mode == 'single'
+
+        # --- HANDLE SINGLE BOX (Simple View) ---
         if hasattr(self, 'route_order_single_box'):
+            # Visibility
             try:
                 self.route_order_single_box.style.display = 'flex' if single else 'none'
             except Exception:
                 self.route_order_single_box.style.visibility = 'visible' if single else 'hidden'
-            # Some backends ignore display; also collapse the inactive container.
-            try:
-                self.route_order_single_box.style.visibility = 'visible' if single else 'hidden'
-                self.route_order_single_box.style.flex = 1 if single else 0
-                self.route_order_single_box.style.height = None if single else 0
-            except Exception:
-                pass
-        if hasattr(self, 'route_order_overview_box'):
-            try:
-                self.route_order_overview_box.style.display = 'none' if single else 'flex'
-            except Exception:
-                self.route_order_overview_box.style.visibility = 'hidden' if single else 'visible'
-            # Some backends ignore display; also collapse the inactive container.
-            try:
-                self.route_order_overview_box.style.visibility = 'hidden' if single else 'visible'
-                self.route_order_overview_box.style.flex = 0 if single else 1
-                self.route_order_overview_box.style.height = 0 if single else None
-            except Exception:
-                pass
 
+            # Dimensions
+            if single:
+                # Active: Expand to fill screen
+                self.route_order_single_box.style.flex = 1
+                # Reset height to auto (Use del instead of None)
+                if 'height' in self.route_order_single_box.style:
+                    del self.route_order_single_box.style.height
+            else:
+                # Inactive: Collapse
+                self.route_order_single_box.style.flex = 0
+                self.route_order_single_box.style.height = 0
+
+        # --- HANDLE OVERVIEW BOX (List View) ---
+        if hasattr(self, 'route_order_overview_box'):
+            # Visibility
+            try:
+                self.route_order_overview_box.style.display = 'flex' if not single else 'none'
+            except Exception:
+                self.route_order_overview_box.style.visibility = 'visible' if not single else 'hidden'
+
+            # Dimensions
+            if not single:
+                # Active: Overview Mode
+                # IMPORTANT: flex must be 0 so the box grows with content (enabling scroll)
+                self.route_order_overview_box.style.flex = 0
+
+                # Reset height to auto (Use del instead of None)
+                if 'height' in self.route_order_overview_box.style:
+                    del self.route_order_overview_box.style.height
+
+                # Force refresh to recalculate list size
+                self.route_order_overview_box.refresh()
+            else:
+                # Inactive: Collapse
+                self.route_order_overview_box.style.flex = 0
+                self.route_order_overview_box.style.height = 0
+
+        # --- HANDLE BUTTONS ---
         if hasattr(self, 'route_order_prev_btn') and hasattr(self, 'route_order_next_btn'):
             self.route_order_prev_btn.enabled = single
             self.route_order_next_btn.enabled = single
-            self.route_order_prev_btn.style.visibility = 'visible' if single else 'hidden'
-            self.route_order_next_btn.style.visibility = 'visible' if single else 'hidden'
+            # Toggle visibility
+            state = 'visible' if single else 'hidden'
+            self.route_order_prev_btn.style.visibility = state
+            self.route_order_next_btn.style.visibility = state
 
     def render_single_view(self, ordered):
         if not ordered:
@@ -2243,27 +2225,43 @@ class POApp(toga.App):
         self.route_order_single_latlon_input.value = f"{lat} {lon}".strip() if lat and lon else ""
 
     def render_overview_view(self, ordered, force=False):
+        """Render stops for overview view with widget caching"""
         if not ordered:
             self.route_order_overview_header.text = "No stops available"
             if hasattr(self, 'route_order_overview_list_box'):
                 self.route_order_overview_list_box.clear()
+                self._route_order_cached_overview_widgets = None
             return
 
         self.route_order_overview_header.text = f"All Stops ({len(ordered)} total)"
 
         # Performance: only rebuild the overview widget list when data changes (or forced).
-        if not force and self._route_order_overview_rendered_version == self._route_order_data_version:
+        # Use widget caching to avoid re-creation delays
+        if (not force and
+                self._route_order_overview_rendered_version == self._route_order_data_version and
+                self._route_order_cached_overview_widgets is not None):
+            # Just update the list box with cached widgets
+            self.route_order_overview_list_box.clear()
+            for widget in self._route_order_cached_overview_widgets:
+                self.route_order_overview_list_box.add(widget)
             return
+
         self._route_order_overview_rendered_version = self._route_order_data_version
 
+        # Clear and rebuild the list
         self.route_order_overview_list_box.clear()
         last_index = len(ordered) - 1
+
+        # Cache widgets for future use
+        self._route_order_cached_overview_widgets = []
+
         for i, stop in enumerate(ordered):
             name = stop.get('name', '')
             lat = stop.get('lat_coords', '')
             lon = stop.get('long_coords', '')
             sort_num = stop.get('sort_num', '')
 
+            # Create card widget
             card = toga.Box(style=Pack(
                 direction=COLUMN,
                 padding=10,
@@ -2279,12 +2277,14 @@ class POApp(toga.App):
             coords_box.add(toga.Label(f"Lat: {lat}", style=Pack(font_size=12, flex=1)))
             coords_box.add(toga.Label(f"Lon: {lon}", style=Pack(font_size=12, flex=1)))
             card.add(coords_box)
+
             self.route_order_overview_list_box.add(card)
+            self._route_order_cached_overview_widgets.append(card)
 
             if i != last_index:
-                self.route_order_overview_list_box.add(
-                    toga.Box(style=Pack(height=1, background_color="#E0E0E0", margin=5))
-                )
+                separator = toga.Box(style=Pack(height=1, background_color="#E0E0E0", margin=5))
+                self.route_order_overview_list_box.add(separator)
+                self._route_order_cached_overview_widgets.append(separator)
 
     def render_route_order_stops(self, force_overview: bool = False):
         """Render stops based on current view mode (optimized: persistent containers)."""
@@ -3128,7 +3128,7 @@ class POApp(toga.App):
             self.show_dialog_async("error", "Error", f"Failed to save: {str(e)}")
 
     def load_pos(self, widget=None):
-        """Load and display POs with new format"""
+        """Load and display POs with a single-line format and action buttons below"""
         self.po_list_box.clear()
         self.checkboxes = []  # Store checkbox references
 
@@ -3143,33 +3143,42 @@ class POApp(toga.App):
             pos = []
 
         for i, po in enumerate(pos):
-            # Create row with new format: uploaded, description, company, route
-            uploaded = "yes" if po.get("uploaded") == True else "no"
+            # 1. Capitalize Yes and No
+            is_uploaded = po.get("uploaded") == True
+            uploaded_status = "YES" if is_uploaded else "NO"
+
             description = po.get("description", "N/A")
             company = po.get("company", "N/A")
             route = po.get("route", "N/A")
 
-            # Format display text without descriptors
-            display_text = f"{uploaded}\n{description}\n{company}\n{route}"
+            # 2. Put everything in one line
+            # Format: NO Description Company Route
+            display_text = f"{uploaded_status} | {description} | {company} | {route}"
 
-            row_box = toga.Box(style=Pack(direction=COLUMN, padding=8))
-            top_row = toga.Box(style=Pack(direction=ROW, padding_bottom=5))
-            btn_row = toga.Box(style=Pack(direction=ROW))
+            # Main container for the PO entry
+            row_box = toga.Box(style=Pack(direction=COLUMN, padding=10))
 
-            # Checkbox for selection
+            # Top row: Switch and the specification text
+            top_row = toga.Box(style=Pack(direction=ROW, alignment=CENTER))
+
+            # Bottom row: Buttons underneath
+            btn_row = toga.Box(style=Pack(direction=ROW, padding_top=5, padding_left=55))
+
+            # Checkbox (Switch)
             checkbox = toga.Switch('', style=Pack(width=50))
             self.checkboxes.append(checkbox)
 
-            # PO label with simplified display
+            # PO label (Single Line)
             label = toga.Label(
                 display_text,
                 style=Pack(flex=1, font_size=14)
             )
 
+            # Buttons
             edit_btn = toga.Button(
                 "Edit",
                 on_press=lambda w, idx=i: self.edit_po_at_index(idx),
-                style=Pack(width=70, padding_left=5, padding_right=5)
+                style=Pack(width=70, padding_right=10)
             )
             delete_btn = toga.Button(
                 "Delete",
@@ -3177,6 +3186,7 @@ class POApp(toga.App):
                 style=Pack(width=80)
             )
 
+            # Assemble layout
             top_row.add(checkbox)
             top_row.add(label)
 
@@ -3186,7 +3196,11 @@ class POApp(toga.App):
             row_box.add(top_row)
             row_box.add(btn_row)
 
+            # Add a separator line for visual clarity between POs
+            separator = toga.Box(style=Pack(height=1, background_color="#E0E0E0", margin_top=5))
+
             self.po_list_box.add(row_box)
+            self.po_list_box.add(separator)
 
         self.apply_theme(self.theme_preference)
 
