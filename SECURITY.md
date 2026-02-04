@@ -6,12 +6,16 @@ The following versions of **Pick Up & Delivery** are currently supported with se
 
 | Version | Supported          | Support Ends     | Notes                           |
 | ------- | ------------------ | ---------------- | ------------------------------- |
-| 2.2.x   | ✅ Yes             | Active           | Current stable release          |
-| 2.1.x   | ⚠️ Limited         | 2025-12-11       | Critical fixes only             |
-| 1.3.0   | ⚠️ Limited         | 2025-12-10       | Critical fixes only             |
-| 1.2.x   | ⚠️ Limited         | 2025-12-09       | Critical fixes only             |
+| 4.0.0   | ✅ Yes             | Active           | New platform release            |
+| 3.0.0   | ✅ Yes             | 2026-12-31       | Last stable release             |
+| 2.2.x   | ✅ Yes             | 2026-01-30       | Stable release                  |
+| 2.1.x   | ❌ No              | 2025-12-11       | Not supported                   |
+| 1.3.0   | ❌ No              | 2025-12-10       | Not supported                   |
+| 1.2.x   | ❌ No              | 2025-12-09       | Not supported                   |
 | 1.1.x   | ❌ No              | 2025-12-04       | Not supported                   |
 | < 1.1.6 | ❌ No              | 2025-05-24       | Not supported                   |
+
+**For version 4.0.0 please navigate to ___"
 
 **Note:** Only the latest major version receives full security support. Users are strongly encouraged to update to the latest version.
 
